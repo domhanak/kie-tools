@@ -22,7 +22,7 @@ import { StateControl } from "@kie-tooling-core/editor/dist/channel";
 import { ContentType } from "@kie-tooling-core/workspace/dist/api";
 import { createEditor, Editor, StandaloneEditorApi } from "../common/Editor";
 import { DmnEditorEnvelopeApi } from "../../../kie-bc-editors/dist/dmn/api/DmnEditorEnvelopeApi";
-import { DmnEditorDiagramApi } from "../jsdiagram/DmnEditorDiagramApi";
+import { BpmnLienzoEditorApi } from "../jslienzo/BpmnLienzoEditorApi";
 
 declare global {
   interface Window {
@@ -61,7 +61,7 @@ export function open(args: {
   origin?: string;
   onError?: () => any;
   resources?: Map<string, { contentType: ContentType; content: Promise<string> }>;
-}): StandaloneEditorApi & DmnEditorDiagramApi {
+}): StandaloneEditorApi & BpmnLienzoEditorApi {
   const iframe = document.createElement("iframe");
   iframe.srcdoc = bpmnEnvelopeIndex;
   iframe.style.width = "100%";
@@ -111,26 +111,26 @@ export function open(args: {
       getNodeIds: () => {
         return envelopeServer.envelopeApi.requests.canvas_getNodeIds();
       },
-      getBackgroundColor: (uuid: string) => {
-        return envelopeServer.envelopeApi.requests.canvas_getBackgroundColor(uuid);
+      getBackgroundColor: (UUID: string) => {
+        return envelopeServer.envelopeApi.requests.canvas_getBackgroundColor(UUID);
       },
-      setBackgroundColor: (uuid: string, backgroundColor: string) => {
-        return envelopeServer.envelopeApi.requests.canvas_setBackgroundColor(uuid, backgroundColor);
+      setBackgroundColor: (UUID: string, backgroundColor: string) => {
+        return envelopeServer.envelopeApi.requests.canvas_setBackgroundColor(UUID, backgroundColor);
       },
-      getBorderColor: (uuid: string) => {
-        return envelopeServer.envelopeApi.requests.canvas_getBorderColor(uuid);
+      getBorderColor: (UUID: string) => {
+        return envelopeServer.envelopeApi.requests.canvas_getBorderColor(UUID);
       },
-      setBorderColor: (uuid: string, backgroundColor: string) => {
-        return envelopeServer.envelopeApi.requests.canvas_setBorderColor(uuid, backgroundColor);
+      setBorderColor: (UUID: string, backgroundColor: string) => {
+        return envelopeServer.envelopeApi.requests.canvas_setBorderColor(UUID, backgroundColor);
       },
-      getLocation: (uuid: string) => {
-        return envelopeServer.envelopeApi.requests.canvas_getLocation(uuid);
+      getLocation: (UUID: string) => {
+        return envelopeServer.envelopeApi.requests.canvas_getLocation(UUID);
       },
-      getAbsoluteLocation: (uuid: string) => {
-        return envelopeServer.envelopeApi.requests.canvas_getAbsoluteLocation(uuid);
+      getAbsoluteLocation: (UUID: string) => {
+        return envelopeServer.envelopeApi.requests.canvas_getAbsoluteLocation(UUID);
       },
-      getDimensions: (uuid: string) => {
-        return envelopeServer.envelopeApi.requests.canvas_getDimensions(uuid);
+      getDimensions: (UUID: string) => {
+        return envelopeServer.envelopeApi.requests.canvas_getDimensions(UUID);
       },
     },
   };

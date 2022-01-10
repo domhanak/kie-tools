@@ -1,6 +1,6 @@
 <p align="center"><img width=55% src="docs/kogito.png"></p>
 
-# Kogito Tooling Test
+# Kogito Tooling Test Test
 
 **[Kogito](http://kogito.kie.org)** is the next generation of business automation platform focused on cloud-native development, deployment and execution.
 

@@ -1,3 +1,19 @@
+/*
+ * Copyright 2021 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import * as React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@patternfly/react-core/dist/js/components/Button";
@@ -17,7 +33,7 @@ import {
   OpType,
   OutlierTreatmentMethod,
   UsageType,
-} from "@kogito-tooling/pmml-editor-marshaller";
+} from "@kie-tools/pmml-editor-marshaller";
 import "./MiningSchemaPropertiesEdit.scss";
 import { useValidationRegistry } from "../../../validation";
 import { Builder } from "../../../paths";
@@ -218,6 +234,8 @@ const MiningSchemaPropertiesEdit = ({
                           setSubmitChanges(true);
                         }}
                         selection={usageType}
+                        data-ouia-component-id="usage-type"
+                        data-ouia-component-type="option-box"
                       />
                     </FormGroup>
                   </SplitItem>
@@ -252,6 +270,8 @@ const MiningSchemaPropertiesEdit = ({
                     name="importance"
                     aria-describedby="Importance"
                     value={importance ?? ""}
+                    ouiaId="importance"
+                    data-ouia-component-type="double-input"
                     validated={validationsImportance.length === 0 ? "default" : "warning"}
                     onChange={(value) => setImportance(toNumberOrUndefined(value))}
                     onBlur={() => {
@@ -286,6 +306,7 @@ const MiningSchemaPropertiesEdit = ({
                           setSubmitChanges(true);
                         }}
                         selection={outliers}
+                        data-ouia-component-id="outliers"
                       />
                     </FormGroup>
                   </SplitItem>
@@ -322,6 +343,7 @@ const MiningSchemaPropertiesEdit = ({
                         className={!enableLowValueComponent ? "mining-schema__edit__form__disabled" : ""}
                         onChange={(value) => setLowValue(toNumberOrUndefined(value))}
                         onBlur={handleSave}
+                        ouiaId="low-value"
                       />
                     </FormGroup>
                   </SplitItem>
@@ -358,6 +380,7 @@ const MiningSchemaPropertiesEdit = ({
                         className={!enableHighValueComponent ? "mining-schema__edit__form__disabled" : ""}
                         onChange={(value) => setHighValue(toNumberOrUndefined(value))}
                         onBlur={handleSave}
+                        ouiaId="high-value"
                       />
                     </FormGroup>
                   </SplitItem>
@@ -475,7 +498,13 @@ const MiningSchemaPropertiesEdit = ({
           </Form>
         </section>
         <section className="mining-schema__edit__actions">
-          <Button variant="primary" onClick={onClose} icon={<ArrowAltCircleLeftIcon />} iconPosition="left">
+          <Button
+            variant="primary"
+            onClick={onClose}
+            icon={<ArrowAltCircleLeftIcon />}
+            iconPosition="left"
+            ouiaId="back-to-ms-overview"
+          >
             Back
           </Button>
         </section>

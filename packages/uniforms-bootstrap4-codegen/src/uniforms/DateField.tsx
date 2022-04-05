@@ -15,7 +15,7 @@
  */
 
 import * as React from "react";
-import { connectField, HTMLFieldProps } from "uniforms/es5";
+import { connectField, HTMLFieldProps } from "uniforms/cjs";
 import { DATE, renderCodeGenElement } from "./templates/templates";
 import { useAddFormElementToBootstrapContext } from "./BootstrapCodeGenContext";
 import { FormInput } from "../api";
@@ -38,7 +38,7 @@ const Date: React.FC<DateFieldProps> = (props: DateFieldProps) => {
   }
 
   const properties = {
-    id: props.id,
+    id: props.name,
     name: props.name,
     label: props.label,
     disabled: props.disabled ?? false,

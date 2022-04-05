@@ -14,81 +14,35 @@
  * limitations under the License.
  */
 
-import { NotificationSeverity } from "@kie-tooling-core/notifications/dist/api";
+import { DmnResult, DmnSchema } from "@kie-tools/form/dist/dmn";
 
-export interface DmnRunnerPayload {
-  model: string;
-  context: object;
+export interface DmnRunnerModelResource {
+  URI: string;
+  content: string;
 }
 
-export enum EvaluationStatus {
-  SUCCEEDED = "SUCCEEDED",
-  SKIPPED = "SKIPPED",
-  FAILED = "FAILED",
-}
-
-export interface DecisionResultMessage {
-  severity: NotificationSeverity;
-  message: string;
-  messageType: string;
-  sourceId: string;
-  level: string;
-}
-
-export type Result = boolean | number | null | object | object[] | string;
-
-export interface DecisionResult {
-  decisionId: string;
-  decisionName: string;
-  result: Result;
-  messages: DecisionResultMessage[];
-  evaluationStatus: EvaluationStatus;
-}
-
-export interface DmnResult {
-  details?: string;
-  stack?: string;
-  decisionResults?: DecisionResult[];
-  messages: DecisionResultMessage[];
-}
-
-export interface DmnFormSchema {
-  definitions?: {
-    InputSet?: {
-      properties: object;
-    };
-  };
+export interface DmnRunnerModelPayload {
+  mainURI: string;
+  resources: DmnRunnerModelResource[];
+  context?: any;
 }
 
 export class DmnRunnerService {
-  private readonly DMN_RUNNER_SERVER_URL: string;
-  private readonly DMN_RUNNER_PING: string;
   private readonly DMN_RUNNER_VALIDATE_URL: string;
   private readonly DMN_RUNNER_DMN_RESULT_URL: string;
   private readonly DMN_RUNNER_FORM_SCHEMA_URL: string;
 
-  constructor(private readonly port: string) {
-    this.DMN_RUNNER_SERVER_URL = `http://localhost:${port}`;
-    this.DMN_RUNNER_PING = `${this.DMN_RUNNER_SERVER_URL}/ping`;
-    this.DMN_RUNNER_VALIDATE_URL = `${this.DMN_RUNNER_SERVER_URL}/jitdmn/validate`;
-    this.DMN_RUNNER_DMN_RESULT_URL = `${this.DMN_RUNNER_SERVER_URL}/jitdmn/dmnresult`;
-    this.DMN_RUNNER_FORM_SCHEMA_URL = `${this.DMN_RUNNER_SERVER_URL}/jitdmn/schema/form`;
+  constructor(private readonly baseUrl: string) {
+    this.DMN_RUNNER_VALIDATE_URL = `${this.baseUrl}/jitdmn/validate`;
+    this.DMN_RUNNER_DMN_RESULT_URL = `${this.baseUrl}/jitdmn/dmnresult`;
+    this.DMN_RUNNER_FORM_SCHEMA_URL = `${this.baseUrl}/jitdmn/schema/form`;
   }
 
-  public async check(): Promise<boolean> {
-    const response = await fetch(this.DMN_RUNNER_SERVER_URL, { method: "OPTIONS" });
-    return response.status < 300;
-  }
+  public async result(payload: DmnRunnerModelPayload): Promise<DmnResult> {
+    if (!this.isPayloadValid(payload)) {
+      return { messages: [] };
+    }
 
-  public async version(): Promise<string> {
-    const response = await fetch(this.DMN_RUNNER_PING, {
-      method: "GET",
-    });
-    const json = await response.json();
-    return json.App.Version;
-  }
-
-  public async result(payload: DmnRunnerPayload): Promise<DmnResult> {
     const response = await fetch(this.DMN_RUNNER_DMN_RESULT_URL, {
       method: "POST",
       headers: {
@@ -100,25 +54,50 @@ export class DmnRunnerService {
     return await response.json();
   }
 
-  public async validate(model: string): Promise<[]> {
+  public async validate(payload: DmnRunnerModelPayload): Promise<[]> {
+    if (!this.isPayloadValid(payload)) {
+      return [];
+    }
+
     const response = await fetch(this.DMN_RUNNER_VALIDATE_URL, {
       method: "POST",
       headers: {
-        "Content-Type": "application/xml;",
+        "Content-Type": "application/json",
       },
-      body: model,
+      body: JSON.stringify(payload),
     });
     return await response.json();
   }
 
-  public async formSchema(model: string): Promise<DmnFormSchema> {
+  public async formSchema(payload: DmnRunnerModelPayload): Promise<DmnSchema> {
+    if (!this.isPayloadValid(payload)) {
+      return {};
+    }
+
     const response = await fetch(this.DMN_RUNNER_FORM_SCHEMA_URL, {
       method: "POST",
       headers: {
-        "Content-Type": "application/xml;",
+        "Content-Type": "application/json",
       },
-      body: model,
+      body: JSON.stringify(payload),
     });
-    return await response.json();
+
+    if (!response.ok) {
+      throw new Error(`${response.status} ${response.statusText}`);
+    }
+
+    // The input set property associated with the mainURI is InputSetX, where X is a number not always 1.
+    // So replace all occurrences InputSetX -> InputSet to keep compatibility with the current DmnForm.
+    const json = await response.json();
+    const refIndex = json["$ref"].replace("#/definitions/InputSet", "");
+    return JSON.parse(
+      JSON.stringify(json)
+        .replace(new RegExp(`InputSet${refIndex}`, "g"), "InputSet")
+        .replace(new RegExp(`OutputSet${refIndex}`, "g"), "OutputSet")
+    );
+  }
+
+  private isPayloadValid(payload: DmnRunnerModelPayload): boolean {
+    return payload.resources.every((resource) => resource.content !== "");
   }
 }

@@ -16,7 +16,7 @@
 
 import * as React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AutoForm } from "uniforms-patternfly";
+import { AutoForm } from "uniforms-patternfly/dist/es6";
 import { ErrorBoundary } from "../common/ErrorBoundary";
 import { dataPathToFormFieldPath } from "./uniforms/utils";
 import { DmnFormJsonSchemaBridge } from "./uniforms";
@@ -26,7 +26,7 @@ import { diff } from "deep-object-diff";
 import { EmptyState, EmptyStateBody, EmptyStateIcon } from "@patternfly/react-core/dist/js/components/EmptyState";
 import { Text, TextContent, TextVariants } from "@patternfly/react-core/dist/js/components/Text";
 import { ExclamationTriangleIcon } from "@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon";
-import { I18nWrapped } from "@kie-tooling-core/i18n/dist/react-components";
+import { I18nWrapped } from "@kie-tools-core/i18n/dist/react-components";
 import { ExclamationIcon } from "@patternfly/react-icons/dist/js/icons/exclamation-icon";
 import { CubesIcon } from "@patternfly/react-icons/dist/js/icons/cubes-icon";
 import cloneDeep from "lodash/cloneDeep";
@@ -40,12 +40,23 @@ enum FormStatus {
   EMPTY,
 }
 
+type DmnDecisionNodes = "InputSet" | string;
+
+export interface DmnSchema {
+  definitions?: {
+    [x in DmnDecisionNodes]?: {
+      type: string;
+      properties: { [x: string]: DmnDeepProperty };
+    };
+  };
+}
+
 export interface DmnFormData {
   definitions: DmnFormDefinitions;
 }
 
-interface DmnFormDefinitions {
-  InputSet?: {
+type DmnFormDefinitions = {
+  [x in DmnDecisionNodes]?: {
     required?: string[];
     properties: object;
     type: string;
@@ -55,7 +66,7 @@ interface DmnFormDefinitions {
     items: any[] & { properties: any };
     "x-dmn-type"?: string;
   };
-}
+};
 
 interface DmnDeepProperty {
   $ref?: string;
@@ -68,8 +79,9 @@ interface DmnDeepProperty {
 }
 
 interface CommonProps {
-  formData: any;
-  setFormData: React.Dispatch<any>;
+  name?: string;
+  formData: object;
+  setFormData: React.Dispatch<object>;
   formError: boolean;
   setFormError: React.Dispatch<any>;
   formSchema?: any;
@@ -119,17 +131,20 @@ export function DmnForm(props: Props) {
   const [formStatus, setFormStatus] = useState<FormStatus>(FormStatus.EMPTY);
   const contextPath = useMemo(() => new Map<string, string[]>(), []);
 
-  const setCustomPlaceholders = useCallback((value: DmnDeepProperty) => {
-    if (value?.format === "days and time duration") {
-      value!.placeholder = i18n.form.preProcessing.daysAndTimePlaceholder;
-    }
-    if (value?.format === "years and months duration") {
-      value!.placeholder = i18n.form.preProcessing.yearsAndMonthsPlaceholder;
-    }
-    if (value?.format === "time") {
-      value!.placeholder = "hh:mm:ss";
-    }
-  }, []);
+  const setCustomPlaceholders = useCallback(
+    (value: DmnDeepProperty) => {
+      if (value?.format === "days and time duration") {
+        value!.placeholder = i18n.form.preProcessing.daysAndTimePlaceholder;
+      }
+      if (value?.format === "years and months duration") {
+        value!.placeholder = i18n.form.preProcessing.yearsAndMonthsPlaceholder;
+      }
+      if (value?.format === "time") {
+        value!.placeholder = "hh:mm:ss";
+      }
+    },
+    [i18n.form.preProcessing.daysAndTimePlaceholder, i18n.form.preProcessing.yearsAndMonthsPlaceholder]
+  );
 
   const formDeepPreprocessing = useCallback(
     (form: DmnFormData, value: DmnDeepProperty, title = [""]) => {
@@ -195,7 +210,7 @@ export function DmnForm(props: Props) {
     [formDeepPreprocessing]
   );
 
-  const defaultFormValues = useMemo(() => {
+  const defaultFormValues = useCallback((jsonSchemaBridge: any) => {
     return Object.keys(jsonSchemaBridge?.schema?.properties ?? {}).reduce((acc, property) => {
       if (Object.hasOwnProperty.call(jsonSchemaBridge?.schema?.properties[property], "$ref")) {
         const refPath = jsonSchemaBridge?.schema?.properties[property].$ref!.split("/").pop() ?? "";
@@ -226,7 +241,7 @@ export function DmnForm(props: Props) {
       }
       return acc;
     }, {} as { [x: string]: any });
-  }, [jsonSchemaBridge]);
+  }, []);
 
   const handleContextPath: (obj: any, path: string[], operation?: "parse" | "stringify") => void = useCallback(
     (obj, path, operation) => {
@@ -273,12 +288,11 @@ export function DmnForm(props: Props) {
     []
   );
 
-  const previousFormSchema: any = usePrevious(props.formSchema);
   const removeDeletedPropertiesAndAddDefaultValues = useCallback(
-    (model: any) => {
+    (model: object, bridge: DmnFormJsonSchemaBridge, previousBridge?: DmnFormJsonSchemaBridge) => {
       const propertiesDifference = diff(
-        previousFormSchema?.definitions?.InputSet?.properties ?? {},
-        props.formSchema?.definitions?.InputSet?.properties ?? {}
+        previousBridge?.schema?.definitions?.InputSet?.properties ?? {},
+        bridge?.schema?.definitions?.InputSet?.properties ?? {}
       );
 
       // Remove property that has been deleted;
@@ -292,25 +306,16 @@ export function DmnForm(props: Props) {
           }
           return form;
         },
-        { ...defaultFormValues, ...model }
+        { ...defaultFormValues(bridge), ...model }
       );
     },
-    [props.formSchema, defaultFormValues]
+    [defaultFormValues]
   );
 
   useEffect(() => {
-    setFormModel((previousFormModel: any) => {
-      if (previousFormModel) {
-        return removeDeletedPropertiesAndAddDefaultValues(previousFormModel);
-      }
-    });
-  }, [removeDeletedPropertiesAndAddDefaultValues]);
-
-  useEffect(() => {
     props.setFormError((previousFormError: boolean) => {
-      if (!previousFormError) {
-        const formData = removeDeletedPropertiesAndAddDefaultValues(formModel);
-        const newFormData = cloneDeep(formData);
+      if (!previousFormError && formModel && Object.keys(formModel).length > 0) {
+        const newFormData = cloneDeep(formModel);
         contextPath.forEach((path) => {
           const pathCopy = [...path];
           handleContextPath(newFormData, pathCopy, "parse");
@@ -319,31 +324,51 @@ export function DmnForm(props: Props) {
       }
       return false;
     });
-  }, [removeDeletedPropertiesAndAddDefaultValues, formModel, contextPath, handleContextPath]);
+  }, [contextPath, formModel, handleContextPath]);
 
   useEffect(() => {
     const form: DmnFormData = cloneDeep(props.formSchema ?? {});
     if (Object.keys(form).length > 0) {
       formPreprocessing(form);
-
-      if (!formModel) {
-        const newFormModel = cloneDeep(props.formData);
-        contextPath.forEach((path) => {
-          const pathCopy = [...path];
-          handleContextPath(newFormModel, pathCopy, "stringify");
-        });
-        setFormModel(newFormModel);
-      }
     }
     try {
       const bridge = validator.getBridge(form);
-      setJsonSchemaBridge(bridge);
+      setJsonSchemaBridge((previousBridge) => {
+        if (formModel) {
+          const newFormModel = removeDeletedPropertiesAndAddDefaultValues(formModel, bridge, previousBridge);
+          if (Object.keys(diff(formModel ?? {}, newFormModel ?? {})).length > 0) {
+            setFormModel(newFormModel);
+          } else {
+            setFormModel(formModel);
+          }
+        }
+        return bridge;
+      });
+
       setFormStatus(FormStatus.WITHOUT_ERROR);
     } catch (err) {
       console.error(err);
       setFormStatus(FormStatus.VALIDATOR_ERROR);
     }
-  }, [props.formSchema, formPreprocessing, validator, handleContextPath]);
+  }, [
+    formModel,
+    props.formSchema,
+    formPreprocessing,
+    validator,
+    handleContextPath,
+    removeDeletedPropertiesAndAddDefaultValues,
+    contextPath,
+  ]);
+
+  // on first render, if model is undefined adds a value on it.
+  useEffect(() => {
+    const newFormModel = cloneDeep(props.formData);
+    contextPath.forEach((path) => {
+      const pathCopy = [...path];
+      handleContextPath(newFormModel, pathCopy, "stringify");
+    });
+    setFormModel(newFormModel);
+  }, [props.name]);
 
   const onSubmit = useCallback(
     (model) => {
@@ -356,7 +381,12 @@ export function DmnForm(props: Props) {
   const onValidate = useCallback(
     (model, error: any) => {
       props.onValidate?.(model, error);
-      setFormModel(model);
+      setFormModel((previousModel?: object) => {
+        if (Object.keys(diff(model, previousModel ?? {})).length > 0) {
+          return model;
+        }
+        return previousModel ?? {};
+      });
       if (!error) {
         return;
       }
@@ -397,7 +427,7 @@ export function DmnForm(props: Props) {
       });
       return { details };
     },
-    [setFormModel, props.onValidate]
+    [props.onValidate]
   );
 
   const formErrorMessage = useMemo(

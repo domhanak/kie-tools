@@ -1,3 +1,19 @@
+/*
+ * Copyright 2021 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import * as React from "react";
 import { useMemo, useState } from "react";
 import { Button, ButtonVariant } from "@patternfly/react-core/dist/js/components/Button";
@@ -7,7 +23,7 @@ import { Title, TitleSizes } from "@patternfly/react-core/dist/js/components/Tit
 import { CloseIcon } from "@patternfly/react-icons/dist/js/icons/close-icon";
 import { WarningTriangleIcon } from "@patternfly/react-icons/dist/js/icons/warning-triangle-icon";
 import MiningSchemaContainer from "../MiningSchemaContainer/MiningSchemaContainer";
-import { DataDictionary, FieldName, MiningField, MiningSchema, PMML } from "@kogito-tooling/pmml-editor-marshaller";
+import { DataDictionary, FieldName, MiningField, MiningSchema, PMML } from "@kie-tools/pmml-editor-marshaller";
 import { useSelector } from "react-redux";
 import { Actions } from "../../../reducers";
 import { useBatchDispatch, useHistoryService } from "../../../history";
@@ -87,6 +103,7 @@ const MiningSchemaHandler = (props: MiningSchemaHandlerProps) => {
           variant={ButtonVariant.plain}
           onClick={handleMiningSchemaToggle}
           data-title="MiningSchemaModalClose"
+          ouiaId="editor-close"
         >
           <CloseIcon />
         </Button>
@@ -97,7 +114,12 @@ const MiningSchemaHandler = (props: MiningSchemaHandlerProps) => {
   return (
     <>
       {validations.length === 0 && (
-        <Button variant="secondary" onClick={handleMiningSchemaToggle} data-title="MiningSchema">
+        <Button
+          variant="secondary"
+          onClick={handleMiningSchemaToggle}
+          data-title="MiningSchema"
+          ouiaId="open-mining-schema-editor"
+        >
           Set Mining Schema
         </Button>
       )}
@@ -108,6 +130,7 @@ const MiningSchemaHandler = (props: MiningSchemaHandlerProps) => {
             icon={<WarningTriangleIcon size={"sm"} color={"orange"} />}
             onClick={handleMiningSchemaToggle}
             data-title="MiningSchema"
+            ouiaId="open-mining-schema-editor"
           >
             Set Mining Schema
           </Button>
@@ -122,6 +145,7 @@ const MiningSchemaHandler = (props: MiningSchemaHandlerProps) => {
         variant={ModalVariant.large}
         onEscapePress={() => false}
         data-title="MiningSchemaModal"
+        ouiaId="mining-schema-editor"
       >
         <MiningSchemaContainer
           modelIndex={modelIndex}

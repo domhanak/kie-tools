@@ -16,7 +16,7 @@
 
 import * as React from "react";
 import { render } from "@testing-library/react";
-import { context, Context } from "uniforms/es5";
+import { context, Context } from "uniforms/cjs";
 import createContext from "./_createContext";
 import { codeGenContext, CodeGenContext } from "../uniforms/CodeGenContext";
 import { FormElement } from "../api";
@@ -30,7 +30,7 @@ const TestCodeGenContextProvider: React.FC<any> = (props: any) => {
   );
 };
 
-export type RenderedField<Element extends FormElement<any>, Container extends Element | DocumentFragment> = {
+export type RenderedField<Element extends FormElement, Container extends Element | DocumentFragment> = {
   formElement: Element;
   container: Container;
 };

@@ -21,16 +21,16 @@ import {
   KogitoEditorChannelApi,
   KogitoEditorEnvelopeApi,
 } from "../../api";
-import { useSyncedKeyboardEvents } from "@kie-tooling-core/keyboard-shortcuts/dist/channel";
-import { useGuidedTourPositionProvider } from "@kie-tooling-core/guided-tour/dist/channel";
+import { useSyncedKeyboardEvents } from "@kie-tools-core/keyboard-shortcuts/dist/channel";
+import { useGuidedTourPositionProvider } from "@kie-tools-core/guided-tour/dist/channel";
 import type * as CSS from "csstype";
 import * as React from "react";
 import { useImperativeHandle, useMemo, useRef, useState } from "react";
-import { File, StateControl } from "../../channel";
+import { EmbeddedEditorFile, StateControl } from "../../channel";
 import { useEffectAfterFirstRender } from "../common";
 import { KogitoEditorChannelApiImpl } from "./KogitoEditorChannelApiImpl";
-import { EnvelopeServer } from "@kie-tooling-core/envelope-bus/dist/channel";
-import { useConnectedEnvelopeServer } from "@kie-tooling-core/envelope-bus/dist/hooks";
+import { EnvelopeServer } from "@kie-tools-core/envelope-bus/dist/channel";
+import { useConnectedEnvelopeServer } from "@kie-tools-core/envelope-bus/dist/hooks";
 
 type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
 
@@ -44,7 +44,7 @@ type EmbeddedEditorChannelApiOverrides = Partial<
 >;
 
 export type Props = EmbeddedEditorChannelApiOverrides & {
-  file: File;
+  file: EmbeddedEditorFile;
   editorEnvelopeLocator: EditorEnvelopeLocator;
   channelType: ChannelType;
   locale: string;
@@ -55,6 +55,7 @@ export type Props = EmbeddedEditorChannelApiOverrides & {
  */
 export type EmbeddedEditorRef = EditorApi & {
   isReady: boolean;
+  iframeRef: React.RefObject<HTMLIFrameElement>;
   getStateControl(): StateControl;
   getEnvelopeServer(): EnvelopeServer<KogitoEditorChannelApi, KogitoEditorEnvelopeApi>;
 };
@@ -80,7 +81,7 @@ const RefForwardingEmbeddedEditor: React.ForwardRefRenderFunction<EmbeddedEditor
   const [isReady, setReady] = useState(false);
 
   const envelopeMapping = useMemo(
-    () => props.editorEnvelopeLocator.mapping.get(props.file.fileExtension),
+    () => props.editorEnvelopeLocator.getEnvelopeMapping(props.file.fileName + "." + props.file.fileExtension),
     [props.editorEnvelopeLocator, props.file]
   );
 
@@ -123,7 +124,7 @@ const RefForwardingEmbeddedEditor: React.ForwardRefRenderFunction<EmbeddedEditor
   useConnectedEnvelopeServer(envelopeServer, kogitoEditorChannelApiImpl);
 
   useEffectAfterFirstRender(() => {
-    envelopeServer.envelopeApi.notifications.kogitoI18n_localeChange(props.locale);
+    envelopeServer.envelopeApi.notifications.kogitoI18n_localeChange.send(props.locale);
   }, [props.locale]);
 
   useEffectAfterFirstRender(() => {
@@ -147,18 +148,20 @@ const RefForwardingEmbeddedEditor: React.ForwardRefRenderFunction<EmbeddedEditor
       }
 
       return {
+        iframeRef,
         isReady: isReady,
         getStateControl: () => stateControl,
         getEnvelopeServer: () => envelopeServer,
         getElementPosition: (s) =>
           envelopeServer.envelopeApi.requests.kogitoGuidedTour_guidedTourElementPositionRequest(s),
-        undo: () => Promise.resolve(envelopeServer.envelopeApi.notifications.kogitoEditor_editorUndo()),
-        redo: () => Promise.resolve(envelopeServer.envelopeApi.notifications.kogitoEditor_editorRedo()),
+        undo: () => Promise.resolve(envelopeServer.envelopeApi.notifications.kogitoEditor_editorUndo.send()),
+        redo: () => Promise.resolve(envelopeServer.envelopeApi.notifications.kogitoEditor_editorRedo.send()),
         getContent: () => envelopeServer.envelopeApi.requests.kogitoEditor_contentRequest().then((c) => c.content),
         getPreview: () => envelopeServer.envelopeApi.requests.kogitoEditor_previewRequest(),
         setContent: (path, content) =>
           envelopeServer.envelopeApi.requests.kogitoEditor_contentChanged({ path, content }),
         validate: () => envelopeServer.envelopeApi.requests.kogitoEditor_validate(),
+        setTheme: (theme) => Promise.resolve(envelopeServer.shared.kogitoEditor_theme.set(theme)),
       };
     },
     [envelopeServer, stateControl, isReady]

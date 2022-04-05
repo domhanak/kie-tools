@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-import { VsCodeBackendProxy } from "@kie-tooling-core/backend/dist/vscode";
-import { EditorEnvelopeLocator } from "@kie-tooling-core/editor/dist/api";
-import { I18n } from "@kie-tooling-core/i18n/dist/core";
-import { VsCodeWorkspaceApi } from "@kie-tooling-core/workspace/dist/vscode";
+import { VsCodeBackendProxy } from "@kie-tools-core/backend/dist/vscode";
+import { EditorEnvelopeLocator } from "@kie-tools-core/editor/dist/api";
+import { I18n } from "@kie-tools-core/i18n/dist/core";
+import { VsCodeWorkspaceApi } from "@kie-tools-core/workspace/dist/vscode";
 import * as vscode from "vscode";
 import { EnvelopeBusMessageBroadcaster } from "./EnvelopeBusMessageBroadcaster";
 import { generateSvg } from "./generateSvg";
@@ -25,7 +25,9 @@ import { vsCodeI18nDefaults, vsCodeI18nDictionaries } from "./i18n";
 import { KogitoEditorFactory } from "./KogitoEditorFactory";
 import { KogitoEditorStore } from "./KogitoEditorStore";
 import { KogitoEditorWebviewProvider } from "./KogitoEditorWebviewProvider";
-import { VsCodeNotificationsApi } from "@kie-tooling-core/notifications/dist/vscode";
+import { VsCodeNotificationsApi } from "@kie-tools-core/notifications/dist/vscode";
+import { VsCodeJavaCodeCompletionImpl } from "@kie-tools-core/vscode-java-code-completion/dist/vscode";
+import { KogitoEditorChannelApiProducer } from "./KogitoEditorChannelApiProducer";
 
 /**
  * Starts a Kogito extension.
@@ -35,14 +37,17 @@ import { VsCodeNotificationsApi } from "@kie-tooling-core/notifications/dist/vsc
  *  @param args.context The vscode.ExtensionContext provided on the activate method of the extension.
  *  @param args.routes The routes to be used to find resources for each language.
  *  @param args.backendProxy The proxy between channels and available backend services.
+ *  @param args.channelApiProducer Optional producer of custom KogitoEditorChannelApi instances.
  */
 export async function startExtension(args: {
   extensionName: string;
   context: vscode.ExtensionContext;
   viewType: string;
-  getPreviewCommandId: string;
+  generateSvgCommandId: string;
+  silentlyGenerateSvgCommandId: string;
   editorEnvelopeLocator: EditorEnvelopeLocator;
   backendProxy: VsCodeBackendProxy;
+  channelApiProducer?: KogitoEditorChannelApiProducer;
 }) {
   await args.backendProxy.tryLoadBackendExtension(true);
 
@@ -51,6 +56,8 @@ export async function startExtension(args: {
   const editorStore = new KogitoEditorStore();
   const messageBroadcaster = new EnvelopeBusMessageBroadcaster();
   const vsCodeNotificationsApi = new VsCodeNotificationsApi(workspaceApi);
+  const vsCodeJavaCodeCompletionChannelApi = new VsCodeJavaCodeCompletionImpl();
+
   const editorFactory = new KogitoEditorFactory(
     args.context,
     editorStore,
@@ -59,8 +66,10 @@ export async function startExtension(args: {
     workspaceApi,
     args.backendProxy,
     vsCodeNotificationsApi,
+    vsCodeJavaCodeCompletionChannelApi,
     args.viewType,
-    vsCodeI18n
+    vsCodeI18n,
+    args.channelApiProducer
   );
 
   const editorWebviewProvider = new KogitoEditorWebviewProvider(
@@ -69,7 +78,8 @@ export async function startExtension(args: {
     editorStore,
     editorFactory,
     vsCodeI18n,
-    vsCodeNotificationsApi
+    vsCodeNotificationsApi,
+    args.editorEnvelopeLocator
   );
 
   args.context.subscriptions.push(
@@ -79,6 +89,26 @@ export async function startExtension(args: {
   );
 
   args.context.subscriptions.push(
-    vscode.commands.registerCommand(args.getPreviewCommandId, () => generateSvg(editorStore, workspaceApi, vsCodeI18n))
+    vscode.commands.registerCommand(args.generateSvgCommandId, () =>
+      generateSvg({
+        editorStore: editorStore,
+        workspaceApi: workspaceApi,
+        vsCodeI18n: vsCodeI18n,
+        displayNotification: true,
+        editorEnvelopeLocator: args.editorEnvelopeLocator,
+      })
+    )
+  );
+
+  args.context.subscriptions.push(
+    vscode.commands.registerCommand(args.silentlyGenerateSvgCommandId, () =>
+      generateSvg({
+        editorStore: editorStore,
+        workspaceApi: workspaceApi,
+        vsCodeI18n: vsCodeI18n,
+        displayNotification: false,
+        editorEnvelopeLocator: args.editorEnvelopeLocator,
+      })
+    )
   );
 }

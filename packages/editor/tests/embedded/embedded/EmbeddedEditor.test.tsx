@@ -14,27 +14,26 @@
  * limitations under the License.
  */
 
-import { EditorEnvelopeLocator, ChannelType } from "@kie-tooling-core/editor/dist/api";
-import { KogitoEdit } from "@kie-tooling-core/workspace/dist/api";
+import { EditorEnvelopeLocator, EnvelopeMapping, ChannelType } from "@kie-tools-core/editor/dist/api";
+import { KogitoEdit } from "@kie-tools-core/workspace/dist/api";
 import * as React from "react";
-import { File } from "@kie-tooling-core/editor/dist/channel";
-import { EmbeddedEditor, EmbeddedEditorRef } from "@kie-tooling-core/editor/dist/embedded";
+import { EmbeddedEditorFile } from "@kie-tools-core/editor/dist/channel";
+import { EmbeddedEditor, EmbeddedEditorRef } from "@kie-tools-core/editor/dist/embedded";
 import { incomingMessage } from "./EmbeddedEditorTestUtils";
 import { render } from "@testing-library/react";
-import { EnvelopeBusMessagePurpose } from "@kie-tooling-core/envelope-bus/dist/api";
+import { EnvelopeBusMessagePurpose } from "@kie-tools-core/envelope-bus/dist/api";
 
 describe("EmbeddedEditor::ONLINE", () => {
-  const file: File = {
-    fileName: "test",
+  const file: EmbeddedEditorFile = {
+    fileName: "test.dmn",
     fileExtension: "dmn",
     getFileContents: () => Promise.resolve(""),
     isReadOnly: false,
   };
 
-  const editorEnvelopeLocator: EditorEnvelopeLocator = {
-    targetOrigin: "localhost:8888",
-    mapping: new Map([["dmn", { envelopePath: "envelope/envelope.html", resourcesPathPrefix: "envelope" }]]),
-  };
+  const editorEnvelopeLocator = new EditorEnvelopeLocator("localhost:8888", [
+    new EnvelopeMapping("dmn", "**/*.dmn", "envelope", "envelope/envelope.html"),
+  ]);
 
   const channelType = ChannelType.ONLINE;
   const editorRef = React.createRef<EmbeddedEditorRef>();

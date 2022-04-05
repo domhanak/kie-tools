@@ -17,7 +17,7 @@
 import * as React from "react";
 import { useEffect, useState } from "react";
 import { useGlobals } from "../common/GlobalContext";
-import { EditorEnvelopeLocator } from "@kie-tooling-core/editor/dist/api";
+import { EditorEnvelopeLocator } from "@kie-tools-core/editor/dist/api";
 import { Dependencies } from "../../Dependencies";
 import { getOriginalFilePath, IsolatedPrEditor, PrInfo } from "./IsolatedPrEditor";
 import { Logger } from "../../../Logger";
@@ -79,7 +79,7 @@ export function PrEditorsApp(props: { prInfo: PrInfo; contentPath: string }) {
 
 function supportedPrFileElements(logger: Logger, envelopeLocator: EditorEnvelopeLocator, dependencies: Dependencies) {
   return prFileElements(logger, dependencies).filter((container) =>
-    envelopeLocator.mapping.has(getFileExtension(container, dependencies))
+    envelopeLocator.hasMappingFor(getFilePath(container, dependencies))
   );
 }
 
@@ -96,6 +96,11 @@ function prFileElements(logger: Logger, dependencies: Dependencies) {
 function getFileExtension(prFileContainer: HTMLElement, dependencies: Dependencies) {
   const unprocessedFilePath = getUnprocessedFilePath(prFileContainer, dependencies);
   return getOriginalFilePath(unprocessedFilePath).split(".").pop()!;
+}
+
+function getFilePath(prFileContainer: HTMLElement, dependencies: Dependencies) {
+  const unprocessedFilePath = getUnprocessedFilePath(prFileContainer, dependencies);
+  return getOriginalFilePath(unprocessedFilePath);
 }
 
 export function getUnprocessedFilePath(prFileContainer: HTMLElement, dependencies: Dependencies) {

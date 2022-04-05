@@ -1,3 +1,19 @@
+/*
+ * Copyright 2021 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import * as React from "react";
 import { useEffect, useRef, useState } from "react";
 import { CSSTransition, SwitchTransition } from "react-transition-group";
@@ -18,6 +34,7 @@ import DataDictionaryPropertiesEdit from "../DataDictionaryPropertiesEdit/DataDi
 import { isEqual } from "lodash";
 import { useValidationRegistry } from "../../../validation";
 import { Builder } from "../../../paths";
+import { Interaction } from "../../../types";
 
 interface DataDictionaryContainerProps {
   dataDictionary: DDDataField[];
@@ -36,6 +53,7 @@ const DataDictionaryContainer = (props: DataDictionaryContainerProps) => {
   const [viewSection, setViewSection] = useState<dataDictionarySection>("main");
   const [editingDataType, setEditingDataType] = useState<DDDataField>();
   const [sorting, setSorting] = useState(false);
+  const [dataTypeFocusIndex, setDataTypeFocusIndex] = useState<number | undefined>(undefined);
 
   useEffect(() => {
     // undoing a recently created data field force to exit the editing mode for that field
@@ -80,8 +98,23 @@ const DataDictionaryContainer = (props: DataDictionaryContainerProps) => {
     saveDataType(dataType, index);
   };
 
-  const handleDelete = (index: number) => {
+  const handleDelete = (index: number, interaction: Interaction) => {
     onDelete(index);
+    if (interaction === "mouse") {
+      //If the DataTypeItem was deleted by clicking on the delete icon we need to blur
+      //the element otherwise the CSS :focus-within persists on the deleted element.
+      //See https://issues.redhat.com/browse/FAI-570 for the root cause.
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement?.blur();
+      }
+    } else if (interaction === "keyboard") {
+      //If the DataTypeItem was deleted by pressing enter on the delete icon when focused
+      //we need to set the focus to the next DataTypeItem. The index of the _next_ item
+      //is identical to the index of the deleted item.
+      setDataTypeFocusIndex(index);
+    }
+    setEditing(undefined);
+    onEditingPhaseChange(false);
   };
 
   const handleEdit = (index: number) => {
@@ -160,8 +193,15 @@ const DataDictionaryContainer = (props: DataDictionaryContainerProps) => {
     }
   }, [dataDictionary, editing]);
 
+  //Set the focus on a DataTypeItem as required
+  useEffect(() => {
+    if (dataTypeFocusIndex !== undefined) {
+      document.querySelector<HTMLElement>(`#data-type-item-n${dataTypeFocusIndex}`)?.focus();
+    }
+  }, [dataDictionary, dataTypeFocusIndex]);
+
   return (
-    <div className="data-dictionary">
+    <div className="data-dictionary" data-testid="data-dictionary-container">
       <SwitchTransition mode={"out-in"}>
         <CSSTransition
           timeout={{
@@ -178,7 +218,11 @@ const DataDictionaryContainer = (props: DataDictionaryContainerProps) => {
                   <FlexItem>
                     <Button
                       variant="primary"
-                      onClick={addDataType}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        event.preventDefault();
+                        addDataType();
+                      }}
                       icon={<PlusIcon />}
                       iconPosition="left"
                       isDisabled={editing !== undefined || sorting}
@@ -194,6 +238,7 @@ const DataDictionaryContainer = (props: DataDictionaryContainerProps) => {
                       icon={<BoltIcon />}
                       iconPosition="left"
                       isDisabled={editing !== undefined || sorting}
+                      ouiaId="add-multiple-data-type"
                     >
                       Add Multiple Data Types
                     </Button>
@@ -205,6 +250,7 @@ const DataDictionaryContainer = (props: DataDictionaryContainerProps) => {
                       icon={<SortIcon />}
                       iconPosition="left"
                       isDisabled={editing !== undefined}
+                      ouiaId="order-toggle"
                     >
                       {sorting ? "End Ordering" : "Order"}
                     </Button>

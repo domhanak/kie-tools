@@ -1,3 +1,19 @@
+/*
+ * Copyright 2021 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import * as React from "react";
 import { BaseSyntheticEvent, useEffect, useMemo, useState } from "react";
 import useOnclickOutside from "react-cool-onclickoutside";
@@ -20,7 +36,7 @@ import { ExclamationCircleIcon } from "@patternfly/react-icons/dist/js/icons/exc
 import { DDDataField } from "../DataDictionaryContainer/DataDictionaryContainer";
 import "./DataTypeItem.scss";
 import ConstraintsLabel from "../ConstraintsLabel/ConstraintsLabel";
-import { Validated } from "../../../types";
+import { Interaction, Validated } from "../../../types";
 import PropertiesLabels from "../PropertiesLabels/PropertiesLabels";
 import { useValidationRegistry } from "../../../validation";
 import { Builder } from "../../../paths";
@@ -32,7 +48,7 @@ interface DataTypeItemProps {
   editingIndex: number | undefined;
   onSave: (dataType: DDDataField, index: number | null) => void;
   onEdit?: (index: number) => void;
-  onDelete?: (index: number) => void;
+  onDelete?: (index: number, interaction: Interaction) => void;
   onConstraintsEdit: (dataType: DDDataField) => void;
   onConstraintsSave: (dataType: DDDataField) => void;
   onValidate: (dataTypeName: string) => boolean;
@@ -123,11 +139,11 @@ const DataTypeItem = (props: DataTypeItemProps) => {
     }
   };
 
-  const handleDelete = (event: React.MouseEvent | React.KeyboardEvent) => {
+  const handleDelete = (event: React.MouseEvent | React.KeyboardEvent, interaction: Interaction) => {
     event.stopPropagation();
     event.preventDefault();
     if (onDelete) {
-      onDelete(index);
+      onDelete(index, interaction);
     }
   };
 
@@ -174,14 +190,17 @@ const DataTypeItem = (props: DataTypeItemProps) => {
 
   return (
     <article
+      id={`data-type-item-n${index}`}
+      data-testid={`data-type-item-n${index}`}
       className={`editable-item ${editingIndex === index ? "editable-item--editing" : ""} data-type-item-n${index}`}
+      data-ouia-component-id={name}
       data-ouia-component-type="dd-type-item"
+      tabIndex={0}
     >
       {editingIndex === index && (
         <section
           className={"editable-item__inner"}
           ref={ref}
-          tabIndex={0}
           onKeyDown={(event) => {
             if (event.key === "Escape") {
               onOutsideClick();
@@ -304,6 +323,8 @@ const DataTypeItem = (props: DataTypeItemProps) => {
                             event.preventDefault();
                             handleConstraints();
                           }}
+                          data-ouia-component-id="edit-props"
+                          data-ouia-component-type="link-label"
                         >
                           Edit Properties
                         </Label>
@@ -319,7 +340,6 @@ const DataTypeItem = (props: DataTypeItemProps) => {
       {editingIndex !== index && (
         <section
           className={"editable-item__inner"}
-          tabIndex={0}
           onClick={handleEditStatus}
           onKeyDown={(event) => {
             if (event.key === "Enter") {
@@ -345,17 +365,39 @@ const DataTypeItem = (props: DataTypeItemProps) => {
               <span className="data-type-item__name">{name}</span>
             </SplitItem>
             <SplitItem isFilled={true}>
-              <Label color="blue" className="data-type-item__type-label">
+              <Label
+                color="blue"
+                className="data-type-item__type-label"
+                data-ouia-component-id={typeSelection}
+                data-ouia-component-type="data-type-label"
+              >
                 {typeSelection}
               </Label>{" "}
-              <Label color="blue" className="data-type-item__type-label">
+              <Label
+                color="blue"
+                className="data-type-item__type-label"
+                data-ouia-component-id={optypeSelection}
+                data-ouia-component-type="data-optype-label"
+              >
                 {optypeSelection}
               </Label>{" "}
               <PropertiesLabels dataType={dataType} />
               <ConstraintsLabel dataType={dataType} dataTypeIndex={index} />
             </SplitItem>
             <SplitItem>
-              <Button variant="plain" data-oui-component-type="delete-field" onClick={handleDelete}>
+              <Button
+                id={`data-type-item-n${index}__delete`}
+                data-testid={`data-type-item-n${index}__delete`}
+                ouiaId="delete-field"
+                className="editable-item__delete"
+                variant="plain"
+                onClick={(e) => handleDelete(e, "mouse")}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    handleDelete(event, "keyboard");
+                  }
+                }}
+              >
                 <TrashIcon />
               </Button>
             </SplitItem>

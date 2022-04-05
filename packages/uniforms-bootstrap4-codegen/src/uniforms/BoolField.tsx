@@ -15,7 +15,7 @@
  */
 
 import * as React from "react";
-import { connectField, HTMLFieldProps } from "uniforms/es5";
+import { connectField, HTMLFieldProps } from "uniforms/cjs";
 import { FormInput } from "../api";
 
 import { useAddFormElementToBootstrapContext } from "./BootstrapCodeGenContext";
@@ -32,7 +32,7 @@ export type BoolFieldProps = HTMLFieldProps<
 
 const Bool: React.FC<BoolFieldProps> = (props: BoolFieldProps) => {
   const properties = {
-    id: props.id,
+    id: props.name,
     name: props.name,
     label: props.label,
     disabled: props.disabled ?? false,

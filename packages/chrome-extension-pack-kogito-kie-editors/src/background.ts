@@ -15,10 +15,10 @@
  */
 
 import HttpHeader = chrome.webRequest.HttpHeader;
-import { removeDirectories, extractFileExtension } from "./utils";
+import { extractFileExtension, removeDirectories } from "./utils";
 
 chrome.runtime.onInstalled.addListener(() => {
-  console.log("Kogito Tooling extension is running.");
+  console.log("KIE Tools extension is running.");
 });
 
 function removeHeader(headers: HttpHeader[], name: string) {

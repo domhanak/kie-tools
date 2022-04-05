@@ -18,26 +18,20 @@ import { BaseSyntheticEvent, useMemo } from "react";
 import { Flex, FlexItem } from "@patternfly/react-core/dist/js/layouts/Flex";
 import { Split, SplitItem } from "@patternfly/react-core/dist/js/layouts/Split";
 import { Label } from "@patternfly/react-core/dist/js/components/Label";
-import {
-  DataType,
-  FieldName,
-  OpType,
-  OutputField,
-  RankOrder,
-  ResultFeature,
-} from "@kogito-tooling/pmml-editor-marshaller";
+import { DataType, FieldName, OpType, OutputField, RankOrder, ResultFeature } from "@kie-tools/pmml-editor-marshaller";
 import { OutputFieldRowAction, OutputLabels } from "../atoms";
 import "./OutputFieldRow.scss";
 import { ValidationIndicator } from "../../EditorCore/atoms";
 import { useValidationRegistry } from "../../../validation";
 import { Builder } from "../../../paths";
+import { Interaction } from "../../../types";
 
 interface OutputFieldRowProps {
   modelIndex: number;
   outputFieldIndex: number;
   outputField: OutputField | undefined;
   onEditOutputField: () => void;
-  onDeleteOutputField: () => void;
+  onDeleteOutputField: (interaction: Interaction) => void;
 }
 
 interface Values {
@@ -93,7 +87,8 @@ const OutputFieldRow = (props: OutputFieldRowProps) => {
 
   return (
     <section
-      tabIndex={0}
+      id={`output-field-n${outputFieldIndex}`}
+      data-testid={`output-field-n${outputFieldIndex}`}
       className={"editable-item__inner"}
       onClick={(event) => handleEdit(event)}
       onKeyDown={(event) => {
@@ -102,6 +97,7 @@ const OutputFieldRow = (props: OutputFieldRowProps) => {
         }
       }}
       data-ouia-component-type="output-field"
+      tabIndex={0}
     >
       <Split hasGutter={true} style={{ height: "100%" }}>
         <SplitItem>
@@ -136,7 +132,8 @@ const OutputFieldRow = (props: OutputFieldRowProps) => {
         </SplitItem>
         <SplitItem>
           <OutputFieldRowAction
-            onDeleteOutputField={onDeleteOutputField}
+            index={outputFieldIndex}
+            onDelete={onDeleteOutputField}
             data-ouia-component-type="output-field-delete"
           />
         </SplitItem>

@@ -15,7 +15,7 @@
  */
 
 import * as React from "react";
-import { connectField, HTMLFieldProps } from "uniforms/es5";
+import { connectField, HTMLFieldProps } from "uniforms/cjs";
 import { INPUT, renderCodeGenElement } from "./templates/templates";
 import { useAddFormElementToBootstrapContext } from "./BootstrapCodeGenContext";
 import { FormInput } from "../api";
@@ -31,7 +31,7 @@ export type TextFieldProps = HTMLFieldProps<
 
 const Text: React.FC<TextFieldProps> = (props: TextFieldProps) => {
   const properties = {
-    id: props.id,
+    id: props.name,
     name: props.name,
     label: props.label,
     type: props.type ?? "text",

@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-import { KogitoEdit } from "@kie-tooling-core/workspace/dist/api";
-import { I18n } from "@kie-tooling-core/i18n/dist/core";
-import { VsCodeNotificationsApi } from "@kie-tooling-core/notifications/dist/vscode";
+import { KogitoEdit } from "@kie-tools-core/workspace/dist/api";
+import { I18n } from "@kie-tools-core/i18n/dist/core";
+import { VsCodeNotificationsApi } from "@kie-tools-core/notifications/dist/vscode";
 import * as vscode from "vscode";
 import {
   CancellationToken,
@@ -27,10 +27,11 @@ import {
   Uri,
 } from "vscode";
 import { VsCodeI18n } from "./i18n";
-import * as nodePath from "path";
+import * as __path from "path";
 import { KogitoEditor } from "./KogitoEditor";
 import { KogitoEditorStore } from "./KogitoEditorStore";
 import { VsCodeOutputLogger } from "./VsCodeOutputLogger";
+import { EditorEnvelopeLocator } from "@kie-tools-core/editor/dist/api";
 
 export class KogitoEditableDocument implements CustomDocument {
   private readonly encoder = new TextEncoder();
@@ -49,7 +50,8 @@ export class KogitoEditableDocument implements CustomDocument {
     public readonly initialBackup: Uri | undefined,
     public readonly editorStore: KogitoEditorStore,
     private readonly vsCodeI18n: I18n<VsCodeI18n>,
-    private readonly vsCodeNotifications: VsCodeNotificationsApi
+    private readonly vsCodeNotifications: VsCodeNotificationsApi,
+    private readonly editorEnvelopeLocator: EditorEnvelopeLocator
   ) {}
 
   public dispose() {
@@ -61,11 +63,21 @@ export class KogitoEditableDocument implements CustomDocument {
   get relativePath() {
     // For some reason, `asRelativePath` always returns paths with the '/' separator,
     // so on Windows, we need to replace it to the correct one, which is '\'.
-    return vscode.workspace.asRelativePath(this.uri).replace(/\//g, nodePath.sep);
+    return vscode.workspace.asRelativePath(this.uri).replace(/\//g, __path.sep);
   }
 
   get fileExtension() {
-    return this.uri.fsPath.split(".").pop()!;
+    const lastSlashIndex = this.uri.fsPath.lastIndexOf("/");
+    const fileName = this.uri.fsPath.substring(lastSlashIndex + 1);
+
+    const firstDotIndex = fileName.indexOf(".");
+    const fileExtension = fileName.substring(firstDotIndex + 1);
+
+    return fileExtension;
+  }
+
+  get fileType() {
+    return this.editorEnvelopeLocator.getEnvelopeMapping(this.uri.fsPath)?.type;
   }
 
   public async save(destination: Uri, cancellation: CancellationToken): Promise<void> {
@@ -91,9 +103,19 @@ export class KogitoEditableDocument implements CustomDocument {
       }
 
       await vscode.workspace.fs.writeFile(destination, this.encoder.encode(content));
+      this.executeOnSaveHook();
       vscode.window.setStatusBarMessage(i18n.savedSuccessfully, 3000);
     } catch (e) {
       this.vsCodeLogger.error(`Error saving. ${e}`);
+    }
+  }
+
+  private executeOnSaveHook() {
+    const hookId = `kogito.${this.fileType}.runOnSave`;
+    const hook = vscode.workspace.getConfiguration().get(hookId, "");
+
+    if (hook) {
+      vscode.commands.executeCommand(hook);
     }
   }
 

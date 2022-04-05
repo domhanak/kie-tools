@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-import { Notification } from "@kie-tooling-core/notifications/dist/api";
-import { ResourceContentOptions, ResourceListOptions } from "@kie-tooling-core/workspace/dist/api";
+import { Notification } from "@kie-tools-core/notifications/dist/api";
+import { ResourceContentOptions, ResourceListOptions } from "@kie-tools-core/workspace/dist/api";
 import {
   EditorFactory,
   EditorInitArgs,
   KogitoEditorChannelApi,
   KogitoEditorEnvelopeContextType,
-} from "@kie-tooling-core/editor/dist/api";
-import { Tutorial, UserInteraction } from "@kie-tooling-core/guided-tour/dist/api";
-import { I18n } from "@kie-tooling-core/i18n/dist/core";
+} from "@kie-tools-core/editor/dist/api";
+import { Tutorial, UserInteraction } from "@kie-tools-core/guided-tour/dist/api";
+import { I18n } from "@kie-tools-core/i18n/dist/core";
 import {
   EditorContextApi,
   GuidedTourApi,
@@ -120,13 +120,13 @@ export class GwtEditorWrapperFactory<E extends GwtEditorWrapper> implements Edit
         keyboardShortcuts: envelopeContext.services.keyboardShortcuts,
         guidedTourService: {
           refresh(userInteraction: UserInteraction): void {
-            envelopeContext.channelApi.notifications.kogitoGuidedTour_guidedTourUserInteraction(userInteraction);
+            envelopeContext.channelApi.notifications.kogitoGuidedTour_guidedTourUserInteraction.send(userInteraction);
           },
           registerTutorial(tutorial: Tutorial): void {
-            envelopeContext.channelApi.notifications.kogitoGuidedTour_guidedTourRegisterTutorial(tutorial);
+            envelopeContext.channelApi.notifications.kogitoGuidedTour_guidedTourRegisterTutorial.send(tutorial);
           },
           isEnabled(): boolean {
-            return envelopeContext.services.guidedTour.isEnabled();
+            return true;
           },
         },
         resourceContentEditorService: {
@@ -143,7 +143,7 @@ export class GwtEditorWrapperFactory<E extends GwtEditorWrapper> implements Edit
         },
         workspaceService: {
           openFile(path: string): void {
-            envelopeContext.channelApi.notifications.kogitoWorkspace_openFile(path);
+            envelopeContext.channelApi.notifications.kogitoWorkspace_openFile.send(path);
           },
         },
         i18nService: {
@@ -156,13 +156,13 @@ export class GwtEditorWrapperFactory<E extends GwtEditorWrapper> implements Edit
         },
         notificationsService: {
           createNotification: (notification: Notification) => {
-            envelopeContext.channelApi.notifications.kogitoNotifications_createNotification(notification);
+            envelopeContext.channelApi.notifications.kogitoNotifications_createNotification.send(notification);
           },
           removeNotifications: (path: string) => {
-            envelopeContext.channelApi.notifications.kogitoNotifications_removeNotifications(path);
+            envelopeContext.channelApi.notifications.kogitoNotifications_removeNotifications.send(path);
           },
           setNotifications: (path: string, notifications: Notification[]) => {
-            envelopeContext.channelApi.notifications.kogitoNotifications_setNotifications(path, notifications);
+            envelopeContext.channelApi.notifications.kogitoNotifications_setNotifications.send(path, notifications);
           },
         },
       },
@@ -183,7 +183,7 @@ export class GwtEditorWrapperFactory<E extends GwtEditorWrapper> implements Edit
         for (const sheet of resource.paths) {
           const link = document.createElement("link");
           link.href = sheet;
-          link.rel = "text/css";
+          link.rel = resource.rel ?? "text/css";
           document.head.appendChild(link);
         }
         return Promise.resolve();

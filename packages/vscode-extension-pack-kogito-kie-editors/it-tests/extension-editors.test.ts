@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-import { By, SideBarView, WebView } from "vscode-extension-tester";
+import { By, EditorView, InputBox, SideBarView, TextEditor, WebView } from "vscode-extension-tester";
 import * as path from "path";
 import { h5ComponentWithText } from "./helpers/CommonLocators";
-import { EditorTabs } from "./helpers/EditorTabs";
+import { EditorTabs } from "./helpers/dmn/EditorTabs";
 import { assertWebElementIsDisplayedEnabled } from "./helpers/CommonAsserts";
 import VSCodeTestHelper from "./helpers/VSCodeTestHelper";
 import BpmnEditorTestHelper, { PaletteCategories } from "./helpers/bpmn/BpmnEditorTestHelper";
@@ -32,13 +32,18 @@ import {
 } from "./helpers/bpmn/BpmnLocators";
 import DecisionNavigatorHelper from "./helpers/dmn/DecisionNavigatorHelper";
 import { PropertiesPanelSection } from "./helpers/bpmn/PropertiesPanelHelper";
+import { TextEdit } from "vscode";
 
 describe("Editors are loading properly", () => {
   const RESOURCES: string = path.resolve("it-tests-tmp", "resources");
   const DEMO_BPMN: string = "demo.bpmn";
   const DEMO_DMN: string = "demo.dmn";
+  const DEMO_DMN_SCESIM: string = "demo-dmn.scesim";
+  const DEMO_EXPRESSION_DMN: string = "demo-expression.dmn";
   const DEMO_SCESIM: string = "demo.scesim";
   const DEMO_PMML: string = "demo.pmml";
+
+  const MULTIPLE_INSTANCE_BPMN: string = "MultipleInstanceSubprocess.bpmn";
 
   const REUSABLE_DMN: string = "reusable-model.dmn";
   const WID_BPMN: string = "process-wid.bpmn";
@@ -143,6 +148,32 @@ describe("Editors are loading properly", () => {
     await webview.switchBack();
   });
 
+  it("Check new DMN Expression Editor", async function () {
+    this.timeout(40000);
+    webview = await testHelper.openFileFromSidebar(DEMO_EXPRESSION_DMN);
+    await testHelper.switchWebviewToFrame(webview);
+    const dmnEditorTester = new DmnEditorTestHelper(webview);
+
+    const decisionNavigator = await dmnEditorTester.openDecisionNavigator();
+
+    await decisionNavigator.selectNodeExpression("context demo", "Context");
+    const contextEditor = await dmnEditorTester.getExpressionEditor();
+    await contextEditor.activateBetaVersion();
+    await contextEditor.assertExpressionDetails("context demo", "string");
+
+    await decisionNavigator.selectNodeExpression("function demo", "Function");
+    const functionEditor = await dmnEditorTester.getExpressionEditor();
+    await functionEditor.activateBetaVersion();
+    await functionEditor.assertExpressionDetails("function demo", "string");
+
+    await decisionNavigator.selectNodeExpression("decision table demo", "Decision Table");
+    const decisionTableEditor = await dmnEditorTester.getExpressionEditor();
+    await decisionTableEditor.activateBetaVersion();
+    await decisionTableEditor.assertExpressionDetails("decision table demo", "string");
+
+    await webview.switchBack();
+  });
+
   it("Opens demo.scesim file in SCESIM Editor", async function () {
     this.timeout(20000);
 
@@ -155,6 +186,35 @@ describe("Editors are loading properly", () => {
     await scesimEditorTester.openTestTools();
 
     await webview.switchBack();
+  });
+
+  /**
+   * As the opened sceism file is empty, a prompt to specify file under test should be shown
+   */
+
+  it("Opens demo-dmn.scesim file in SCESIM Editor", async function () {
+    this.timeout(20000);
+
+    webview = await testHelper.openFileFromSidebar(DEMO_DMN_SCESIM);
+    await testHelper.switchWebviewToFrame(webview);
+    const scesimEditorTester = new ScesimEditorTestHelper(webview);
+
+    await scesimEditorTester.specifyDmnOnLandingPage(DEMO_DMN);
+
+    await webview.switchBack();
+
+    // save file so we can check the plain text source
+    await testHelper.executeCommandFromPrompt("File: Save");
+
+    // check plain text source starts with <?xml?> prolog
+    await testHelper.executeCommandFromPrompt("View: Reopen Editor With...");
+    const input = await InputBox.create();
+    await input.selectQuickPick("Text Editor");
+
+    const xmlProlog = '<?xml version="1.0" encoding="UTF-8"?>';
+    const plainText = new TextEditor();
+    assert.equal(await plainText.getTextAtLine(1), xmlProlog, "First line should be an <?xml?> prolog");
+    assert.notEqual(await plainText.getTextAtLine(2), xmlProlog, "<?xml?> prolog should be there just once");
   });
 
   it("Opens demo.pmml file in PMML Editor", async function () {
@@ -276,6 +336,36 @@ describe("Editors are loading properly", () => {
       dataTypeTypeBracketFormat,
       false
     );
+
+    await webview.switchBack();
+  });
+
+  it("Opens MultipleInstanceSubprocess.bpmn file in BPMN Editor and test value change", async function () {
+    this.timeout(40000);
+    webview = await testHelper.openFileFromSidebar(MULTIPLE_INSTANCE_BPMN);
+    await testHelper.switchWebviewToFrame(webview);
+    const bpmnEditorTester = new BpmnEditorTestHelper(webview);
+
+    const explorerPanel = await bpmnEditorTester.openDiagramExplorer();
+    await explorerPanel.selectDiagramNode("Multiple Instance Sub-Process");
+
+    let propertiesPanel = await bpmnEditorTester.openDiagramProperties();
+
+    const newProcessName = "Changed Multiple Instance Sub-Process";
+    await propertiesPanel.changeProperty("Name", newProcessName, "textarea");
+    await propertiesPanel.assertPropertyValue("Name", newProcessName, "textarea");
+
+    await propertiesPanel.expandPropertySection(PropertiesPanelSection.IMPLEMENTATION_EXECUTION);
+
+    const newProcessMIExecutionValue = "Sequential";
+    let processMIExecutionMode = await propertiesPanel.getProperty("MI Execution mode", "select");
+    await bpmnEditorTester.scrollElementIntoView(processMIExecutionMode);
+    const customProcessMIExecutionOption = await processMIExecutionMode.findElement(
+      By.xpath("//select/option[@value='" + newProcessMIExecutionValue + "']")
+    );
+    await customProcessMIExecutionOption.click();
+
+    await propertiesPanel.assertPropertyValue("MI Execution mode", newProcessMIExecutionValue, "select");
 
     await webview.switchBack();
   });

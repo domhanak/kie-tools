@@ -16,21 +16,29 @@
 
 import * as vscode from "vscode";
 import { Uri, Webview } from "vscode";
-import * as nodePath from "path";
-import { NotificationsApi } from "@kie-tooling-core/notifications/dist/api";
-import { BackendProxy } from "@kie-tooling-core/backend/dist/api";
-import { ResourceContentService } from "@kie-tooling-core/workspace/dist/api";
-import { EditorEnvelopeLocator, EnvelopeMapping } from "@kie-tooling-core/editor/dist/api";
-import { WorkspaceApi } from "@kie-tooling-core/workspace/dist/api";
+import * as __path from "path";
+import { NotificationsApi } from "@kie-tools-core/notifications/dist/api";
+import { BackendProxy } from "@kie-tools-core/backend/dist/api";
+import { ResourceContentService, WorkspaceApi } from "@kie-tools-core/workspace/dist/api";
+import {
+  EditorEnvelopeLocator,
+  EnvelopeMapping,
+  KogitoEditorChannelApi,
+  KogitoEditorEnvelopeApi,
+} from "@kie-tools-core/editor/dist/api";
 import { EnvelopeBusMessageBroadcaster } from "./EnvelopeBusMessageBroadcaster";
 import { KogitoEditableDocument } from "./KogitoEditableDocument";
 import { KogitoEditor } from "./KogitoEditor";
-import { KogitoEditorChannelApiImpl } from "./KogitoEditorChannelApiImpl";
 import { KogitoEditorStore } from "./KogitoEditorStore";
 import { VsCodeNodeResourceContentService } from "./VsCodeNodeResourceContentService";
 import { VsCodeResourceContentService } from "./VsCodeResourceContentService";
-import { I18n } from "@kie-tooling-core/i18n/dist/core";
+import { I18n } from "@kie-tools-core/i18n/dist/core";
 import { VsCodeI18n } from "./i18n";
+import { JavaCodeCompletionApi } from "@kie-tools-core/vscode-java-code-completion/dist/api";
+import {
+  DefaultKogitoEditorChannelApiProducer,
+  KogitoEditorChannelApiProducer,
+} from "./KogitoEditorChannelApiProducer";
 
 export class KogitoEditorFactory {
   constructor(
@@ -41,21 +49,23 @@ export class KogitoEditorFactory {
     private readonly workspaceApi: WorkspaceApi,
     private readonly backendProxy: BackendProxy,
     private readonly notificationsApi: NotificationsApi,
+    private readonly javaCodeCompletionApi: JavaCodeCompletionApi,
     private readonly viewType: string,
-    private readonly i18n: I18n<VsCodeI18n>
+    private readonly i18n: I18n<VsCodeI18n>,
+    private readonly channelApiProducer: KogitoEditorChannelApiProducer = new DefaultKogitoEditorChannelApiProducer()
   ) {}
 
   public configureNew(webviewPanel: vscode.WebviewPanel, document: KogitoEditableDocument) {
     webviewPanel.webview.options = {
       enableCommandUris: true,
       enableScripts: true,
-      localResourceRoots: [vscode.Uri.file(this.context.extensionPath)],
+      localResourceRoots: [this.context.extensionUri],
     };
 
     const editorEnvelopeLocator = this.getEditorEnvelopeLocatorForWebview(webviewPanel.webview);
     const resourceContentService = this.createResourceContentService(document.uri.fsPath, document.relativePath);
 
-    const envelopeMapping = editorEnvelopeLocator.mapping.get(document.fileExtension);
+    const envelopeMapping = editorEnvelopeLocator.getEnvelopeMapping(document.uri.fsPath);
     if (!envelopeMapping) {
       throw new Error(`No envelope mapping found for '${document.fileExtension}'`);
     }
@@ -70,39 +80,15 @@ export class KogitoEditorFactory {
       this.messageBroadcaster
     );
 
-    const editorChannelApi = new KogitoEditorChannelApiImpl(
-      editor,
-      resourceContentService,
-      this.workspaceApi,
-      this.backendProxy,
-      this.notificationsApi,
-      this.viewType,
-      this.i18n
-    );
+    const editorChannelApi = this.getChannelApi(editor, resourceContentService);
 
     this.editorStore.addAsActive(editor);
     editor.startListening(editorChannelApi);
-    editor.startInitPolling();
+    editor.startInitPolling(editorChannelApi);
     editor.setupPanelActiveStatusChange();
     editor.setupPanelOnDidDispose();
     editor.setupWebviewContent();
-  }
-
-  private getEditorEnvelopeLocatorForWebview(webview: vscode.Webview): EditorEnvelopeLocator {
-    return {
-      targetOrigin: this.editorEnvelopeLocator.targetOrigin,
-      mapping: [...this.editorEnvelopeLocator.mapping.entries()].reduce((mapping, [fileExtension, m]) => {
-        mapping.set(fileExtension, {
-          envelopePath: this.getWebviewPath(webview, m.envelopePath),
-          resourcesPathPrefix: this.getWebviewPath(webview, m.resourcesPathPrefix),
-        });
-        return mapping;
-      }, new Map<string, EnvelopeMapping>()),
-    };
-  }
-
-  private getWebviewPath(webview: Webview, relativePath: string) {
-    return webview.asWebviewUri(Uri.file(this.context.asAbsolutePath(relativePath))).toString();
+    editor.startListeningToThemeChanges();
   }
 
   public createResourceContentService(path: string, workspacePath: string): ResourceContentService {
@@ -113,13 +99,47 @@ export class KogitoEditorFactory {
     }
   }
 
+  private getChannelApi(editor: KogitoEditor, resourceContentService: ResourceContentService): KogitoEditorChannelApi {
+    return this.channelApiProducer.get(
+      editor,
+      resourceContentService,
+      this.workspaceApi,
+      this.backendProxy,
+      this.notificationsApi,
+      this.javaCodeCompletionApi,
+      this.viewType,
+      this.i18n
+    );
+  }
+
+  private getEditorEnvelopeLocatorForWebview(webview: vscode.Webview): EditorEnvelopeLocator {
+    return new EditorEnvelopeLocator(
+      this.editorEnvelopeLocator.targetOrigin,
+      [...this.editorEnvelopeLocator.envelopeMappings].reduce((envelopeMappings, mapping) => {
+        envelopeMappings.push(
+          new EnvelopeMapping(
+            mapping.type,
+            mapping.filePathGlob,
+            this.getWebviewPath(webview, mapping.envelopePath),
+            this.getWebviewPath(webview, mapping.resourcesPathPrefix)
+          )
+        );
+        return envelopeMappings;
+      }, [] as EnvelopeMapping[])
+    );
+  }
+
+  private getWebviewPath(webview: Webview, relativePath: string) {
+    return webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, relativePath)).toString();
+  }
+
   private isAssetInWorkspace(path: string): boolean {
     return vscode.workspace.workspaceFolders?.map((f) => f.uri.fsPath).find((p) => path.startsWith(p)) !== undefined;
   }
 
   private getParentFolder(assetPath: string) {
-    if (assetPath.includes(nodePath.sep)) {
-      return assetPath.substring(0, assetPath.lastIndexOf(nodePath.sep) + 1);
+    if (assetPath.includes(__path.sep)) {
+      return assetPath.substring(0, assetPath.lastIndexOf(__path.sep) + 1);
     }
     return "";
   }

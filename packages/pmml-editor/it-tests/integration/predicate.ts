@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import * as buildEnv from "@kogito-tooling/build-env";
+import * as buildEnv from "@kie-tools/build-env";
 
 describe("Predicate Test", () => {
   beforeEach(() => {
@@ -48,7 +48,7 @@ describe("Predicate Test", () => {
         });
         cy.ouiaId("attribute-done").click();
 
-        cy.ouiaType("filler").should("be.visible").click();
+        cy.ouiaType("filler").first().should("be.visible").click();
         cy.get("[data-ouia-component-type='characteristic-item']:contains('Char1')")
           .should("be.visible")
           .within(() => {
@@ -119,7 +119,7 @@ describe("Predicate Test", () => {
       });
       cy.ouiaId("attribute-done").click();
 
-      cy.ouiaType("filler").should("be.visible").click();
+      cy.ouiaType("filler").first().should("be.visible").click();
 
       cy.get("[data-ouia-component-type='characteristic-item']:contains('Char1')")
         .should("be.visible")
@@ -145,12 +145,14 @@ describe("Predicate Test", () => {
       cy.ouiaId("edit-characteristic").within(() => {
         cy.ouiaType("attribute-item")
           .first()
+          //The "Attribute Item" needs the focus (or mouse hover) for the delete icon to be visible.
+          .focus()
           .within(() => {
             cy.ouiaId("delete-attribute").click();
           });
       });
 
-      cy.ouiaType("filler").should("be.visible").click();
+      cy.ouiaType("filler").first().should("be.visible").click();
 
       cy.get("[data-ouia-component-type='characteristic-item']:contains('Char1')")
         .should("be.visible")
@@ -181,7 +183,7 @@ describe("Predicate Test", () => {
       );
       cy.ouiaId("attribute-done").click();
 
-      cy.ouiaType("filler").should("be.visible").click();
+      cy.ouiaType("filler").first().should("be.visible").click();
 
       cy.get("[data-ouia-component-type='characteristic-item']:contains('Char1')")
         .should("be.visible")
@@ -213,7 +215,7 @@ describe("Predicate Test", () => {
       });
       cy.ouiaId("attribute-done").click();
 
-      cy.ouiaType("filler").should("be.visible").click();
+      cy.ouiaType("filler").first().should("be.visible").click();
 
       cy.get("[data-ouia-component-type='characteristic-item']:contains('Char1')")
         .should("be.visible")

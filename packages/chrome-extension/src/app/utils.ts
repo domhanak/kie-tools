@@ -18,6 +18,7 @@ import {
   KOGITO_IFRAME_FULLSCREEN_CONTAINER_CLASS,
   KOGITO_MAIN_CONTAINER_CLASS,
   KOGITO_MENU_CONTAINER_CLASS,
+  KOGITO_OPEN_REPO_IN_EXTERNAL_EDITOR_CONTAINER_CLASS,
 } from "./constants";
 import { Logger } from "../Logger";
 
@@ -105,10 +106,35 @@ export function kogitoMenuContainer(id: string, container: HTMLElement) {
   return element();
 }
 
+export function openRepoInExternalEditorContainer(id: string, container: HTMLElement) {
+  const element = () => document.querySelector(`.${KOGITO_OPEN_REPO_IN_EXTERNAL_EDITOR_CONTAINER_CLASS}.${id}`)!;
+
+  if (!element()) {
+    container.insertAdjacentHTML(
+      "beforeend",
+      `<div class="${KOGITO_OPEN_REPO_IN_EXTERNAL_EDITOR_CONTAINER_CLASS} ${id}"></div>`
+    );
+  }
+
+  return element();
+}
+
 export function extractOpenFileExtension(url: string) {
   return url
     .split(".")
     .pop()
     ?.match(/[\w\d]+/)
     ?.pop();
+}
+
+export function extractOpenFilePath(url: string) {
+  const lastDotIndex = url.lastIndexOf(".");
+  const splittedUrl = url.split(".");
+  const fileExtension = splittedUrl
+    .pop()
+    ?.match(/[\w\d]+/)
+    ?.pop();
+  const filePathWithoutExtension = url.substring(0, lastDotIndex + 1);
+
+  return (filePathWithoutExtension ? filePathWithoutExtension : "") + (fileExtension ? fileExtension : "");
 }

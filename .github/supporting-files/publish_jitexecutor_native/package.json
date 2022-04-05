@@ -1,0 +1,14 @@
+{
+  "name": "@kie-tools/jitexecutor-native",
+  "version": "0.0.0",
+  "description": "",
+  "license": "Apache-2.0",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kiegroup/kie-tools.git"
+  }
+}

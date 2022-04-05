@@ -16,13 +16,13 @@
 
 import * as React from "react";
 import * as ReactDOMServer from "react-dom/server";
-import { Bridge } from "uniforms/es5";
+import { Bridge } from "uniforms/cjs";
 import { FormElement, FormInput } from "../../api";
 import FormInputs from "./FormInputs";
 import { CodeGenContext } from "../CodeGenContext";
 import NestedFieldInput from "./NestedFieldInput";
 
-export const renderFormInputs = (schema: Bridge): FormElement<any>[] => {
+export const renderFormInputs = (schema: Bridge): FormElement[] => {
   const codegenCtx: CodeGenContext = {
     rendered: [],
   };

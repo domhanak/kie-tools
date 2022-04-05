@@ -15,9 +15,9 @@
  */
 
 import { GwtStateControlCommand } from "./GwtStateControlCommand";
-import { KogitoEditorChannelApi } from "@kie-tooling-core/editor/dist/api";
-import { MessageBusClientApi } from "@kie-tooling-core/envelope-bus/dist/api";
-import { KogitoEdit } from "@kie-tooling-core/workspace/dist/api";
+import { KogitoEditorChannelApi } from "@kie-tools-core/editor/dist/api";
+import { MessageBusClientApi } from "@kie-tools-core/envelope-bus/dist/api";
+import { KogitoEdit } from "@kie-tools-core/workspace/dist/api";
 
 /**
  * PUBLIC GWT EDITORS API
@@ -44,7 +44,7 @@ export class DefaultKogitoCommandRegistry<T> implements KogitoCommandRegistry<T>
     if (!this.undoneCommands.includes(newCommand.getId())) {
       // Only notifying if the command is a new command. Also clearing the removedCommands registry, since the undone
       // commands won't be redone
-      this.channelApi.notifications.kogitoWorkspace_newEdit(new KogitoEdit(newCommand.getId()));
+      this.channelApi.notifications.kogitoWorkspace_newEdit.send(new KogitoEdit(newCommand.getId()));
       this.undoneCommands = [];
     } else {
       // Removing the command from the removedCommands registry since it's been registered again (redo).

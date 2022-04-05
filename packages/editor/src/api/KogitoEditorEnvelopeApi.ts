@@ -15,10 +15,10 @@
  */
 
 import { EditorContent } from "./EditorContent";
-import { KeyboardShortcutsEnvelopeApi } from "@kie-tooling-core/keyboard-shortcuts/dist/api";
-import { GuidedTourEnvelopeApi } from "@kie-tooling-core/guided-tour/dist/api";
-import { I18nEnvelopeApi } from "@kie-tooling-core/i18n/dist/api";
-import { Notification } from "@kie-tooling-core/notifications/dist/api";
+import { KeyboardShortcutsEnvelopeApi } from "@kie-tools-core/keyboard-shortcuts/dist/api";
+import { GuidedTourEnvelopeApi } from "@kie-tools-core/guided-tour/dist/api";
+import { I18nEnvelopeApi } from "@kie-tools-core/i18n/dist/api";
+import { Notification } from "@kie-tools-core/notifications/dist/api";
 
 export interface Association {
   origin: string;
@@ -26,12 +26,14 @@ export interface Association {
 }
 
 export enum ChannelType {
-  VSCODE = "VSCODE",
+  VSCODE_DESKTOP = "VSCODE_DESKTOP",
+  VSCODE_WEB = "VSCODE_WEB",
   ONLINE = "ONLINE",
   GITHUB = "GITHUB",
   DESKTOP = "DESKTOP",
   EMBEDDED = "EMBEDDED",
   OTHER = "OTHER",
+  ONLINE_MULTI_FILE = "ONLINE_MULTI_FILE",
 }
 
 export interface EditorInitArgs {

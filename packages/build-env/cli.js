@@ -34,6 +34,7 @@ async function main() {
       ...checkCliTool("npm", ["-v"]),
       ...checkCliTool("yarn", ["-v"]),
       ...checkCliTool("lerna", ["-v"]),
+      ...checkCliTool("go", ["version"]),
       ...checkCliTool("mvn", ["-v"]),
     };
     console.info(checks);
@@ -91,26 +92,28 @@ async function main() {
     g.setEdgeAttribut("arrowhead", "dot");
     g.setEdgeAttribut("arrowsize", "0.5");
 
-    const root = g.addNode("kiegroup/kogito-tooling");
+    const root = g.addNode("kiegroup/kie-tools");
     root.set("shape", "folder");
 
     for (const pkgName in resMatrix) {
       const displayPkgName = pkgName;
 
+      const pkgProperties = (() => {
+        if (pkgName.startsWith("@kie-tools-examples") || pkgName.startsWith("kie-tools-examples-")) {
+          return { color: "orange", nodeStyle: "dashed, rounded" };
+        } else if (packageMap.get(pkgName)?.private) {
+          return { color: "black", nodeStyle: "dashed, rounded" };
+        } else if (pkgName.startsWith("@kie-tools-core")) {
+          return { color: "purple", nodeStyle: "rounded" };
+        } else {
+          return { color: "blue", nodeStyle: "rounded" };
+        }
+      })();
+
       const node = g.addNode(displayPkgName);
-      if (packageMap.get(pkgName)?.private) {
-        node.set("color", "black");
-        node.set("fontcolor", "black");
-        node.set("style", "dashed, rounded");
-      } else if (displayPkgName.startsWith("@kie-tooling-core")) {
-        node.set("style", "rounded");
-        node.set("color", "purple");
-        node.set("fontcolor", "purple");
-      } else {
-        node.set("style", "rounded");
-        node.set("color", "blue");
-        node.set("fontcolor", "blue");
-      }
+      node.set("color", pkgProperties.color);
+      node.set("fontcolor", pkgProperties.color);
+      node.set("style", pkgProperties.nodeStyle);
 
       if (Object.keys(resMatrix[pkgName]).length === 0) {
         g.addEdge(displayPkgName, root, {});
@@ -118,13 +121,14 @@ async function main() {
 
       for (const depName in resMatrix[pkgName]) {
         const displayDepName = depName;
-
         if (resMatrix[pkgName][depName] === "dependency") {
           const edge = g.addEdge(displayPkgName, displayDepName, {});
           edge.set("style", "solid");
+          edge.set("color", pkgProperties.color);
         } else if (resMatrix[pkgName][depName] === "devDependency") {
           const edge = g.addEdge(displayPkgName, displayDepName, {});
           edge.set("style", "dashed");
+          edge.set("color", pkgProperties.color);
         } else if (resMatrix[pkgName][depName] === "transitive") {
           // ignore
         }

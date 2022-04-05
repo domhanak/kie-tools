@@ -26,7 +26,7 @@ import { Title } from "@patternfly/react-core/dist/js/components/Title";
 import { ArrowAltCircleLeftIcon } from "@patternfly/react-icons/dist/js/icons/arrow-alt-circle-left-icon";
 import { BoltIcon } from "@patternfly/react-icons/dist/js/icons/bolt-icon";
 import { PlusIcon } from "@patternfly/react-icons/dist/js/icons/plus-icon";
-import { FieldName, MiningSchema, Output, OutputField } from "@kogito-tooling/pmml-editor-marshaller";
+import { FieldName, MiningSchema, Output, OutputField } from "@kie-tools/pmml-editor-marshaller";
 import { Actions } from "../../../reducers";
 import OutputFieldsTable from "./OutputFieldsTable";
 import OutputsBatchAdd from "./OutputsBatchAdd";
@@ -174,7 +174,11 @@ export const OutputsContainer = (props: OutputsContainerProps) => {
                     <FlexItem>
                       <Button
                         variant="primary"
-                        onClick={addOutputField}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          addOutputField();
+                        }}
                         isDisabled={activeOperation !== Operation.NONE}
                         icon={<PlusIcon />}
                         iconPosition="left"

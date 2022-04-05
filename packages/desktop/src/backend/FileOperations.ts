@@ -24,7 +24,7 @@ import { Menu } from "./Menu";
 import * as path from "path";
 import IpcMainEvent = Electron.IpcMainEvent;
 import { DesktopI18n } from "./i18n";
-import { I18n } from "@kie-tooling-core/i18n/dist/core";
+import { I18n } from "@kie-tools-core/i18n/dist/core";
 
 export class FileOperations {
   private readonly window: BrowserWindow;
@@ -151,10 +151,11 @@ export class FileOperations {
   public openSample(filePath: string) {
     Files.read(FS.newFile(filePath))
       .then((content) => {
+        const fileExtension = extractFileExtension(filePath);
         this.window.webContents.send("openFile", {
           file: {
-            filePath: SAMPLE,
-            fileType: extractFileExtension(filePath),
+            filePath: SAMPLE + "." + fileExtension,
+            fileType: fileExtension,
             fileContent: content,
           },
         });

@@ -15,32 +15,34 @@
  */
 
 import * as vscode from "vscode";
+import { ColorThemeKind, UIKind } from "vscode";
 import {
   ChannelType,
   EditorApi,
   EditorEnvelopeLocator,
+  EditorTheme,
   EnvelopeMapping,
   KogitoEditorChannelApi,
   KogitoEditorEnvelopeApi,
-} from "@kie-tooling-core/editor/dist/api";
+} from "@kie-tools-core/editor/dist/api";
 import { KogitoEditorStore } from "./KogitoEditorStore";
 import { KogitoEditableDocument } from "./KogitoEditableDocument";
-import { EnvelopeBusMessage } from "@kie-tooling-core/envelope-bus/dist/api";
+import { EnvelopeBusMessage } from "@kie-tools-core/envelope-bus/dist/api";
 import { EnvelopeBusMessageBroadcaster } from "./EnvelopeBusMessageBroadcaster";
-import { EnvelopeServer } from "@kie-tooling-core/envelope-bus/dist/channel";
+import { EnvelopeServer } from "@kie-tools-core/envelope-bus/dist/channel";
 
 export class KogitoEditor implements EditorApi {
   private broadcastSubscription: (msg: EnvelopeBusMessage<unknown, any>) => void;
 
   public constructor(
     public readonly document: KogitoEditableDocument,
-    private readonly panel: vscode.WebviewPanel,
+    public readonly panel: vscode.WebviewPanel,
     private readonly context: vscode.ExtensionContext,
     private readonly editorStore: KogitoEditorStore,
     private readonly envelopeMapping: EnvelopeMapping,
     private readonly envelopeLocator: EditorEnvelopeLocator,
     private readonly messageBroadcaster: EnvelopeBusMessageBroadcaster,
-    private readonly envelopeServer = new EnvelopeServer<KogitoEditorChannelApi, KogitoEditorEnvelopeApi>(
+    public readonly envelopeServer = new EnvelopeServer<KogitoEditorChannelApi, KogitoEditorEnvelopeApi>(
       {
         postMessage: (msg) => {
           try {
@@ -59,11 +61,26 @@ export class KogitoEditor implements EditorApi {
             resourcesPathPrefix: envelopeMapping.resourcesPathPrefix,
             initialLocale: vscode.env.language,
             isReadOnly: false,
-            channel: ChannelType.VSCODE,
+            channel: vscode.env.uiKind === UIKind.Desktop ? ChannelType.VSCODE_DESKTOP : ChannelType.VSCODE_WEB,
           }
         )
     )
   ) {}
+
+  private getEditorThemeByVscodeTheme(vscodeTheme: ColorThemeKind) {
+    switch (vscodeTheme) {
+      case ColorThemeKind.Dark:
+        return EditorTheme.DARK;
+      case ColorThemeKind.HighContrast:
+        return EditorTheme.HIGH_CONTRAST;
+      default:
+        return EditorTheme.LIGHT;
+    }
+  }
+
+  public getCurrentTheme() {
+    return this.getEditorThemeByVscodeTheme(vscode.window.activeColorTheme.kind);
+  }
 
   public getElementPosition(selector: string) {
     return this.envelopeServer.envelopeApi.requests.kogitoGuidedTour_guidedTourElementPositionRequest(selector);
@@ -78,11 +95,11 @@ export class KogitoEditor implements EditorApi {
   }
 
   public async undo() {
-    this.envelopeServer.envelopeApi.notifications.kogitoEditor_editorUndo();
+    this.envelopeServer.envelopeApi.notifications.kogitoEditor_editorUndo.send();
   }
 
   public async redo() {
-    this.envelopeServer.envelopeApi.notifications.kogitoEditor_editorRedo();
+    this.envelopeServer.envelopeApi.notifications.kogitoEditor_editorRedo.send();
   }
 
   public getPreview() {
@@ -93,13 +110,17 @@ export class KogitoEditor implements EditorApi {
     return this.envelopeServer.envelopeApi.requests.kogitoEditor_validate();
   }
 
-  public startInitPolling() {
-    this.envelopeServer.startInitPolling();
+  public async setTheme(theme: EditorTheme) {
+    return this.envelopeServer.shared.kogitoEditor_theme.set(theme);
   }
 
-  public startListening(editorChannelApi: KogitoEditorChannelApi) {
+  public startInitPolling(apiImpl: KogitoEditorChannelApi) {
+    this.envelopeServer.startInitPolling(apiImpl);
+  }
+
+  public startListening(apiImpl: KogitoEditorChannelApi) {
     this.broadcastSubscription = this.messageBroadcaster.subscribe((msg) => {
-      this.envelopeServer.receive(msg, editorChannelApi);
+      this.envelopeServer.receive(msg, apiImpl);
     });
 
     this.context.subscriptions.push(
@@ -183,5 +204,11 @@ export class KogitoEditor implements EditorApi {
         </body>
         </html>
     `;
+  }
+
+  public startListeningToThemeChanges() {
+    vscode.window.onDidChangeActiveColorTheme((colorTheme) => {
+      return this.setTheme(this.getEditorThemeByVscodeTheme(colorTheme.kind));
+    });
   }
 }

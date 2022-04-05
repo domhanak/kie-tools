@@ -21,14 +21,7 @@ import { Split, SplitItem } from "@patternfly/react-core/dist/js/layouts/Split";
 import { FormGroup } from "@patternfly/react-core/dist/js/components/Form";
 import { Select, SelectOption, SelectVariant } from "@patternfly/react-core/dist/js/components/Select";
 import "./OutputFieldRow.scss";
-import {
-  DataType,
-  FieldName,
-  OpType,
-  OutputField,
-  RankOrder,
-  ResultFeature,
-} from "@kogito-tooling/pmml-editor-marshaller";
+import { DataType, FieldName, OpType, OutputField, RankOrder, ResultFeature } from "@kie-tools/pmml-editor-marshaller";
 import { OutputLabelsEditMode } from "../atoms";
 import { ExclamationCircleIcon } from "@patternfly/react-icons/dist/js/icons/exclamation-circle-icon";
 import { ValidatedType } from "../../../types";
@@ -189,7 +182,7 @@ const OutputFieldEditRow = (props: OutputFieldEditRowProps) => {
                       });
                     }
                   }}
-                  data-ouia-component-type="set-output-field-name"
+                  ouiaId="set-output-field-name"
                 />
               </FormGroup>
             </SplitItem>
@@ -199,7 +192,7 @@ const OutputFieldEditRow = (props: OutputFieldEditRowProps) => {
                 fieldId="output-dataType-helper"
                 style={{ width: "12em" }}
                 isRequired={true}
-                data-ouia-component-type="select-output-field-type"
+                data-ouia-component-id="select-output-field-type"
               >
                 <Select
                   id="output-dataType"

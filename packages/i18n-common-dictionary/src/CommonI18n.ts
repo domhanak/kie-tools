@@ -14,17 +14,23 @@
  * limitations under the License.
  */
 
-import { ReferenceDictionary } from "@kie-tooling-core/i18n/dist/core";
+import { ReferenceDictionary } from "@kie-tools-core/i18n/dist/core";
 import { names } from "./names";
 
 export type CommonDictionary = {
   available: string;
   back: string;
   cancel: string;
+  change: string;
   close: string;
+  configure: string;
+  confirm: string;
+  connected: string;
   continue: string;
   copy: string;
   cut: string;
+  deploy: string;
+  disconnected: string;
   dismiss: string;
   done: string;
   download: string;
@@ -36,11 +42,13 @@ export type CommonDictionary = {
   files: string;
   forum: string;
   fullScreen: string;
+  host: string;
   inputs: string;
   install: string;
   launch: string;
   loading: string;
   macosApplicationFolder: string;
+  namespace: string;
   new: string;
   next: string;
   note: string;
@@ -54,14 +62,17 @@ export type CommonDictionary = {
   paste: string;
   poweredBy: string;
   quit: string;
+  readonly: string;
   redo: string;
   reset: string;
+  run: string;
   save: string;
   setup: string;
   start: string;
   token: string;
   undo: string;
   uninstall: string;
+  username: string;
   validation: string;
 };
 

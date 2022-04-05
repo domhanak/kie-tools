@@ -14,15 +14,13 @@
  * limitations under the License.
  */
 
-import * as buildEnv from "@kogito-tooling/build-env";
-
 describe("Dmn Read Only.", () => {
   before("Visit page", () => {
-    cy.visit(`localhost:${buildEnv.standaloneEditors.dev.port}/dmn-read-only`);
+    cy.visit("/dmn-read-only");
     cy.loadEditors(["dmn-read-only"]);
   });
 
-  it("Test Load File And View", () => {
+  it.skip("Test Load File And View", () => {
     cy.editor("dmn-read-only").find("[data-field='palettePanel']").should("not.be.visible");
 
     cy.editor("dmn-read-only")

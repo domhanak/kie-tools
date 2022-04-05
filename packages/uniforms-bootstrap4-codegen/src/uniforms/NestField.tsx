@@ -15,7 +15,7 @@
  */
 
 import React, { useContext } from "react";
-import { connectField, context, HTMLFieldProps } from "uniforms/es5";
+import { connectField, context, HTMLFieldProps } from "uniforms/cjs";
 import { renderNestedInputFragmentWithContext } from "./rendering/RenderingUtils";
 import { FormElement, FormInput, FormInputContainer } from "../api";
 import { useBootstrapCodegenContext } from "./BootstrapCodeGenContext";
@@ -46,13 +46,13 @@ const Nest: React.FunctionComponent<NestFieldProps> = ({
       if (nestedElement) {
         nestedFields.push(nestedElement);
       } else {
-        console.log(`Cannnot render form field for: '${field}'`);
+        console.log(`Cannot render form field for: '${field}'`);
       }
     });
   }
 
   const properties = {
-    id: id,
+    id: name,
     name: name,
     label: label,
     disabled: disabled,

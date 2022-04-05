@@ -15,8 +15,8 @@
  */
 
 import { StateControl } from "../../channel";
-import { KogitoGuidedTour } from "@kie-tooling-core/guided-tour/dist/channel";
-import { Tutorial, UserInteraction } from "@kie-tooling-core/guided-tour/dist/api";
+import { KogitoGuidedTour } from "@kie-tools-core/guided-tour/dist/channel";
+import { Tutorial, UserInteraction } from "@kie-tools-core/guided-tour/dist/api";
 import { KogitoEditorChannelApi, StateControlCommand, EditorContent } from "../../api";
 import {
   KogitoEdit,
@@ -24,14 +24,15 @@ import {
   ResourceContentRequest,
   ResourceListRequest,
   ResourcesList,
-} from "@kie-tooling-core/workspace/dist/api";
-import { File } from "../../channel";
-import { Notification } from "@kie-tooling-core/notifications/dist/api";
+} from "@kie-tools-core/workspace/dist/api";
+import { EmbeddedEditorFile } from "../../channel";
+import { Notification } from "@kie-tools-core/notifications/dist/api";
+import { EditorTheme } from "../../api";
 
 export class KogitoEditorChannelApiImpl implements KogitoEditorChannelApi {
   constructor(
     private readonly stateControl: StateControl,
-    private readonly file: File,
+    private readonly file: EmbeddedEditorFile,
     private readonly locale: string,
     private readonly overrides: Partial<KogitoEditorChannelApi>
   ) {}
@@ -89,6 +90,10 @@ export class KogitoEditorChannelApiImpl implements KogitoEditorChannelApi {
 
   public kogitoEditor_setContentError(editorContent: EditorContent): void {
     this.overrides.kogitoEditor_setContentError?.(editorContent);
+  }
+
+  public kogitoEditor_theme() {
+    return this.overrides.kogitoEditor_theme?.() ?? { defaultValue: EditorTheme.LIGHT };
   }
 
   public kogitoI18n_getLocale(): Promise<string> {

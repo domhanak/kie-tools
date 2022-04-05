@@ -14,37 +14,45 @@
  * limitations under the License.
  */
 
+import { DmnSchema } from "@kie-tools/form/dist/dmn";
 import * as React from "react";
 import { useContext } from "react";
-import { DmnRunnerStatus } from "./DmnRunnerStatus";
-import { DmnFormSchema, DmnRunnerService } from "./DmnRunnerService";
+import { DmnRunnerModelPayload, DmnRunnerService } from "./DmnRunnerService";
+import { DmnRunnerMode, DmnRunnerStatus } from "./DmnRunnerStatus";
+
+export type InputRow = Record<string, string>;
 
 export interface DmnRunnerContextType {
-  status: DmnRunnerStatus;
-  setStatus: React.Dispatch<DmnRunnerStatus>;
-  formSchema?: DmnFormSchema;
-  isDrawerExpanded: boolean;
-  setDrawerExpanded: React.Dispatch<boolean>;
-  isModalOpen: boolean;
-  setModalOpen: React.Dispatch<boolean>;
-  formData: any;
-  setFormData: React.Dispatch<any>;
-  port: string;
-  saveNewPort: (value: string) => void;
+  currentInputRowIndex: number;
+  error: boolean;
+  inputRows: Array<InputRow>;
+  didUpdateInputRows: boolean;
+  isExpanded: boolean;
+  jsonSchema?: DmnSchema;
+  mode: DmnRunnerMode;
+  didUpdateOutputRows: boolean;
   service: DmnRunnerService;
-  version: string;
-  formError: boolean;
-  outdated: boolean;
-  setFormError: React.Dispatch<boolean>;
-  closeDmnTour: () => void;
+  status: DmnRunnerStatus;
 }
 
-export const DmnRunnerContext = React.createContext<DmnRunnerContextType>({
-  status: DmnRunnerStatus.UNAVAILABLE,
-  isDrawerOpen: false,
-  isModalOpen: false,
-} as any);
+export interface DmnRunnerCallbacksContextType {
+  preparePayload: (formData?: any) => Promise<DmnRunnerModelPayload>;
+  setExpanded: React.Dispatch<React.SetStateAction<boolean>>;
+  setError: React.Dispatch<React.SetStateAction<boolean>>;
+  setCurrentInputRowIndex: React.Dispatch<React.SetStateAction<number>>;
+  setInputRows: React.Dispatch<React.SetStateAction<Array<InputRow>>>;
+  setDidUpdateInputRows: React.Dispatch<React.SetStateAction<boolean>>;
+  setDidUpdateOutputRows: React.Dispatch<React.SetStateAction<boolean>>;
+  setMode: React.Dispatch<React.SetStateAction<DmnRunnerMode>>;
+}
 
-export function useDmnRunner() {
-  return useContext(DmnRunnerContext);
+export const DmnRunnerStateContext = React.createContext<DmnRunnerContextType>({} as any);
+export const DmnRunnerDispatchContext = React.createContext<DmnRunnerCallbacksContextType>({} as any);
+
+export function useDmnRunnerState() {
+  return useContext(DmnRunnerStateContext);
+}
+
+export function useDmnRunnerDispatch() {
+  return useContext(DmnRunnerDispatchContext);
 }

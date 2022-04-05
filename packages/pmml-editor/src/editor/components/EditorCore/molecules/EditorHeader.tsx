@@ -18,7 +18,7 @@ import * as React from "react";
 import { Split, SplitItem } from "@patternfly/react-core/dist/js/layouts/Split";
 import DataDictionaryHandler from "../../DataDictionary/DataDictionaryHandler/DataDictionaryHandler";
 import { OutputsHandler } from "../../Outputs/organisms";
-import { FieldName, MiningSchema, Output, OutputField } from "@kogito-tooling/pmml-editor-marshaller";
+import { FieldName, MiningSchema, Output, OutputField } from "@kie-tools/pmml-editor-marshaller";
 import MiningSchemaHandler from "../../MiningSchema/MiningSchemaHandler/MiningSchemaHandler";
 import "./EditorHeader.scss";
 
@@ -54,7 +54,7 @@ export const EditorHeader = (props: EditorHeaderProps) => {
         <SplitItem className={"editorHeader__modelName"}>
           <ModelTitle modelName={modelName} commitModelName={commitModelName} />
         </SplitItem>
-        <SplitItem isFilled={true} />
+        <SplitItem isFilled={true} data-ouia-component-type="filler" />
         <SplitItem>
           <DataDictionaryHandler />
         </SplitItem>

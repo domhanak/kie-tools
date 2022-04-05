@@ -17,8 +17,9 @@
 export enum DmnRunnerStatus {
   UNAVAILABLE,
   AVAILABLE,
-  RUNNING,
-  NOT_RUNNING,
-  OUTDATED,
-  STOPPED,
+}
+
+export enum DmnRunnerMode {
+  FORM,
+  TABLE,
 }

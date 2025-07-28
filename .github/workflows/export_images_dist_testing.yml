@@ -31,6 +31,10 @@ jobs:
       - name: Setup Environment
         uses: ./.github/actions/setup-env
 
+      - name: Run pnpm bootstrap
+        run: eval "pnpm bootstrap ${{ env.OSL_IMAGES_PNPM_FILTER }} --no-frozen-lockfile"
+        shell: bash
+
       - name: Setup Environment Variables
         run: bash ./.github/supporting-files/ci/osl/export_vars.sh
         shell: bash

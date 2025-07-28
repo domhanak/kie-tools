@@ -31,20 +31,35 @@ jobs:
       - name: Setup Environment
         uses: ./.github/actions/setup-env
 
-      - name: Setup pnpm
-        run: pnpm bootstrap --no-frozen-lockfile
-        shell: bash
-
       - name: Setup Environment Variables
         run: bash ./.github/supporting-files/ci/osl/export_vars.sh
         shell: bash
 
+      - name: Get Kiegroup git ref urls
+        id: get_kiegroup_git_refs
+        run: |
+          # Get Kiegroup Drools Git Ref
+          DROOLS_GIT_REF=$(git ls-remote "${{ env.DROOLS_AND_KOGITO__droolsRepoUrl}}" refs/heads/main | awk '{print $1}')
+          echo "DROOLS_AND_KOGITO__droolsRepoUrl=$DROOLS_GIT_REF" >> "$GITHUB_OUTPUT"
+
+          Get Kiegroup Runtimes Git Ref
+          RUNTIMES_GIT_REF=$(git ls-remote "${{ env.DROOLS_AND_KOGITO__kogitoRuntimesRepoUrl}}" refs/heads/main | awk '{print $1}')
+          echo "DROOLS_AND_KOGITO__kogitoRuntimesRepoGitRef=$RUNTIMES_GIT_REF" >> "$GITHUB_OUTPUT"
+
+          # Get Kiegroup Apps Git Ref
+          APPS_GIT_REF=$(git ls-remote "${{ env.DROOLS_AND_KOGITO__kogitoAppsRepoUrl}}" refs/heads/main | awk '{print $1}')
+          echo "DROOLS_AND_KOGITO__kogitoAppsRepoGitRef=$APPS_GIT_REF" >> "$GITHUB_OUTPUT"
+
       - name: Run pnpm bootstrap
-        run: pnpm bootstrap --no-frozen-lockfile
+        run: eval "pnpm bootstrap ${{ env.OSL_IMAGES_PNPM_FILTER }} --no-frozen-lockfile"
+        env:
+          DROOLS_AND_KOGITO__droolsRepoUrl: "${{ steps.get_kiegroup_git_refs.outputs.DROOLS_AND_KOGITO__droolsRepoUrl}}"
+          DROOLS_AND_KOGITO__kogitoRuntimesRepoGitRef: "${{ steps.get_kiegroup_git_refs.outputs.DROOLS_AND_KOGITO__kogitoRuntimesRepoGitRef}}"
+          DROOLS_AND_KOGITO__kogitoAppsRepoGitRef: "${{ steps.get_kiegroup_git_refs.outputs.DROOLS_AND_KOGITO__kogitoAppsRepoGitRef}}"
         shell: bash
 
       - name: Build OSL Packages
-        run: eval "pnpm ${{ env.PNPM_FILTER }} --workspace-concurrency=1 build:prod"
+        run: eval "pnpm ${{ env.OSL_IMAGES_PNPM_FILTER }} --workspace-concurrency=1 build:prod"
         env:
           NODE_OPTIONS: "--max_old_space_size=4096"
         shell: bash

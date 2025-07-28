@@ -32,7 +32,7 @@ jobs:
         uses: ./.github/actions/setup-env
 
       - name: Run pnpm bootstrap
-        run: eval "pnpm bootstrap ${{ env.OSL_IMAGES_PNPM_FILTER }} --no-frozen-lockfile"
+        run: eval "pnpm bootstrap '@osl/redhat-env...' --no-frozen-lockfile"
         env:
           DROOLS_AND_KOGITO__skip: true 
           KOGITO_RUNTIME_version: "999-SNAPSHOT"
@@ -58,7 +58,7 @@ jobs:
           echo "DROOLS_AND_KOGITO__kogitoAppsRepoGitRef=$APPS_GIT_REF" >> "$GITHUB_OUTPUT"
 
       - name: Run pnpm bootstrap
-        run: eval "pnpm bootstrap ${{ env.OSL_IMAGES_PNPM_FILTER }} --no-frozen-lockfile"
+        run: eval "pnpm bootstrap ${{ env.PNPM_FILTER }} --no-frozen-lockfile"
         env:
           DROOLS_AND_KOGITO__forceBuild: true
           KOGITO_RUNTIME_version: "999-SNAPSHOT"

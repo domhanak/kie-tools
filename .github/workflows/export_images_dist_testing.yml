@@ -47,7 +47,7 @@ jobs:
         run: |
           # Get Kiegroup Drools Git Ref
           DROOLS_GIT_REF=$(git ls-remote "${{ env.DROOLS_AND_KOGITO__droolsRepoUrl}}" refs/heads/main | awk '{print $1}')
-          echo "DROOLS_AND_KOGITO__droolsRepoUrl=$DROOLS_GIT_REF" >> "$GITHUB_OUTPUT"
+          echo "DROOLS_AND_KOGITO__droolsRepoGitRef=$DROOLS_GIT_REF" >> "$GITHUB_OUTPUT"
 
           # Get Kiegroup Runtimes Git Ref
           RUNTIMES_GIT_REF=$(git ls-remote "${{ env.DROOLS_AND_KOGITO__kogitoRuntimesRepoUrl}}" refs/heads/main | awk '{print $1}')

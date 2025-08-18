@@ -1,0 +1,183 @@
+name: "CI :: OSL :: Export Dist to osl-images :: TEST"
+
+on:
+  workflow_dispatch:
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+  PNPM_FILTER: ${{ vars.OSL_IMAGES_PNPM_FILTER }}
+  OSL_PACKAGES: ${{ vars.OSL_IMAGES_PACKAGES }}
+
+jobs:
+  export_dist:
+    runs-on: ubuntu-latest
+    if: ${{ vars.ENABLE_OSL_DIST_EXPORT == 'yes' }}
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout Source Repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup Git Environment
+        run: |
+          git config --global user.name "domhanak"
+          git config --global user.email "dhanak@redhat.com"
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+
+      - name: Run pnpm bootstrap - first time
+        run: pnpm bootstrap -F '@osl/redhat-env...' --no-frozen-lockfile
+        env:
+          DROOLS_AND_KOGITO__skip: true 
+          KOGITO_RUNTIME_version: "999-SNAPSHOT"
+        shell: bash
+
+      - name: Setup Environment Variables
+        run: bash ./.github/supporting-files/ci/osl/export_vars.sh
+        shell: bash
+
+      - name: Get Kiegroup git ref urls
+        id: get_kiegroup_git_refs
+        run: |
+          # Get Kiegroup Drools Git Ref
+          DROOLS_GIT_REF=$(git ls-remote "${{ env.DROOLS_AND_KOGITO__droolsRepoUrl}}" refs/heads/main | awk '{print $1}')
+          echo "DROOLS_AND_KOGITO__droolsRepoGitRef=$DROOLS_GIT_REF" >> "$GITHUB_OUTPUT"
+
+          # Get Kiegroup Runtimes Git Ref
+          RUNTIMES_GIT_REF=$(git ls-remote "${{ env.DROOLS_AND_KOGITO__kogitoRuntimesRepoUrl}}" refs/heads/main | awk '{print $1}')
+          echo "DROOLS_AND_KOGITO__kogitoRuntimesRepoGitRef=$RUNTIMES_GIT_REF" >> "$GITHUB_OUTPUT"
+
+          # Get Kiegroup Apps Git Ref
+          APPS_GIT_REF=$(git ls-remote "${{ env.DROOLS_AND_KOGITO__kogitoAppsRepoUrl}}" refs/heads/main | awk '{print $1}')
+          echo "DROOLS_AND_KOGITO__kogitoAppsRepoGitRef=$APPS_GIT_REF" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare maven-base with .mvn/maven.config
+        id: prepare_maven_base_config
+        run: |
+          mkdir ./packages/maven-base/.mvn
+          echo "-Dversion.org.kie.kogito=999-SNAPSHOT" > "./packages/maven-base/.mvn/maven.config"
+          echo "--no-snapshot-updates" >> "./packages/maven-base/.mvn/maven.config"
+
+      - name: Run pnpm bootstrap - second time
+        run: eval "pnpm bootstrap ${{ env.PNPM_FILTER }} --no-frozen-lockfile"
+        env:
+          DROOLS_AND_KOGITO__forceBuild: true
+          KOGITO_RUNTIME_version: "999-SNAPSHOT"
+          DROOLS_AND_KOGITO__droolsRepoGitRef: "${{ steps.get_kiegroup_git_refs.outputs.DROOLS_AND_KOGITO__droolsRepoGitRef}}"
+          DROOLS_AND_KOGITO__kogitoRuntimesRepoGitRef: "${{ steps.get_kiegroup_git_refs.outputs.DROOLS_AND_KOGITO__kogitoRuntimesRepoGitRef}}"
+          DROOLS_AND_KOGITO__kogitoAppsRepoGitRef: "${{ steps.get_kiegroup_git_refs.outputs.DROOLS_AND_KOGITO__kogitoAppsRepoGitRef}}"
+        shell: bash
+
+      - name: Run mvn clean install to create image zips
+        run: |
+          mvn clean install -DskipTests -B -nsu
+        env:
+          DROOLS_AND_KOGITO__forceBuild: false
+          KOGITO_RUNTIME_version: "999-SNAPSHOT"
+      
+      - name: Replace pre-build step in kogito-db-migrator-tool
+        run: |
+          sed -i "s/pnpm pre-build && //g" ./packages/kogito-db-migrator-tool/package.json"
+
+      - name: Build OSL Packages
+        run: eval "pnpm ${{ env.PNPM_FILTER }} --workspace-concurrency=1 build:prod"
+        env:
+          NODE_OPTIONS: "--max_old_space_size=4096"
+        shell: bash
+
+      - name: Checkout Target Repo (osl-images)
+        uses: actions/checkout@v4
+        with:
+          repository: kubesmarts/osl-images
+          token: ${{ secrets.GH_TOKEN }}
+          path: target-repo
+
+      - name: Consolidate Dist Outputs to Target Repo
+        run: |
+          set -euo pipefail
+
+          BASE="target-repo/images-dist"
+          mkdir -p "$BASE/modules" "$BASE/scripts"
+
+          for pkg in ${{ env.OSL_PACKAGES }}; do
+            SRC="packages/${pkg}/dist"
+            echo "🖨 Processing dist for $pkg"
+
+            if [ ! -d "$SRC" ]; then
+              echo "⚠️  $SRC not found, skipping."
+              continue
+            fi
+
+            # ── Merge modules ───────────────────────────────────────────────────────
+            if [ -d "$SRC/modules" ]; then
+              cp -r "$SRC/modules/"* "$BASE/modules/"
+            fi
+
+            # ── Merge scripts ───────────────────────────────────────────────────────
+            if [ -d "$SRC/scripts" ]; then
+              cp -r "$SRC/scripts/"* "$BASE/scripts/"
+            fi
+
+            # ── Copy package YAMLs ──────────────────────────────────────────────────
+            for yf in "$SRC"/*.yaml; do
+              fname="$(basename "$yf")"
+              case "$fname" in
+                content-sets.yaml)
+                  # only copy the first one
+                  if [ ! -f "$BASE/content-sets.yaml" ]; then
+                    cp "$yf" "$BASE/"
+                  fi
+                  ;;
+                *)
+                  # this will copy image.yaml (or any other yaml) for each pkg
+                  cp "$yf" "$BASE/"
+                  ;;
+              esac
+            done
+
+            # ── Skip tests/ and Makefile ───────────────────────────────────────────
+            # (We never copied them, so nothing to remove.)
+          done
+        shell: bash
+
+      - name: Commit and Push to Target Repo
+        run: |
+          set -euo pipefail
+          cd target-repo
+
+          BRANCH="export-dist-$(date +'%Y%m%d-%H%M%S')"
+          git checkout -b "$BRANCH"
+          git add .
+          git commit -m "chore: export OSL dist from main"
+          git push -u origin "$BRANCH"
+          echo "EXPORT_BRANCH=$BRANCH" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Create Pull Request
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          SYNC_REVIEWERS: ${{ vars.SYNC_REVIEWERS }}
+        run: |
+          set -euo pipefail
+
+          PR_TITLE="[$(date +'%Y-%m-%d:%H%M%S')] - :robot: Export OSL dist from main"
+          REVIEWERS_OPTION=""
+          if [[ -n "$SYNC_REVIEWERS" ]]; then
+            REVIEWERS_OPTION="--reviewer $SYNC_REVIEWERS"
+          fi
+
+          PR_URL=$(gh pr create \
+            --repo kubesmarts/osl-images \
+            --title "$PR_TITLE" \
+            --body "This PR includes the latest dist output for packages: $OSL_PACKAGES" \
+            --base main \
+            --head "$EXPORT_BRANCH" $REVIEWERS_OPTION)
+
+          echo "✅ Created PR: $PR_URL"
+        shell: bash

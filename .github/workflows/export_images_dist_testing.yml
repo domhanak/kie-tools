@@ -39,24 +39,23 @@ jobs:
           echo "Cloning drools main branch)..."
           git clone --depth 1 --branch main https://github.com/kiegroup/drools.git
           cd drools
-          mvn clean install -Dquickly
+          mvn clean install -B -Dquickly
           cd ..
           rm -rf drools
 
           echo "Cloning kogito-runtimes (main branch)..."
           git clone --depth 1 --branch main https://github.com/kiegroup/kogito-runtimes.git
           cd kogito-runtimes
-          mvn clean install -Dquickly
+          mvn clean install -B -Dquickly
           cd ..
           rm -rf kogito-runtimes
 
           echo "Cloning kogito-apps (main branch)..."
           git clone --depth 1 --branch main https://github.com/kiegroup/kogito-apps.git
           cd kogito-apps
-          mvn clean install -Dquickly
+          mvn clean install -B -Dquickly
           cd ..
           rm -rf kogito-apps
-          cd kie-tools
 
       - name: Run pnpm bootstrap - first time
         run: pnpm bootstrap -F '@osl/redhat-env...' --no-frozen-lockfile

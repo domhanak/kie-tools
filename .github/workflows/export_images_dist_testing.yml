@@ -35,7 +35,7 @@ jobs:
         run: pnpm bootstrap -F '@osl/redhat-env...' --no-frozen-lockfile
         env:
           DROOLS_AND_KOGITO__skip: true 
-          KOGITO_RUNTIME_version: "999.0.0"
+          KOGITO_RUNTIME_version: "999-SNAPSHOT"
         shell: bash
 
       - name: Setup Environment Variables
@@ -61,13 +61,14 @@ jobs:
         id: prepare_maven_base_config
         run: |
           mkdir ./packages/maven-base/.mvn
-          echo "-Dversion.org.kie.kogito=999.0.0" > "./packages/maven-base/.mvn/maven.config"
+          echo "-Dversion.org.kie.kogito=999-SNAPSHOT" > "./packages/maven-base/.mvn/maven.config"
+          echo "--no-snapshot-updates" >> "./packages/maven-base/.mvn/maven.config"
 
       - name: Run pnpm bootstrap - second time
         run: eval "pnpm bootstrap ${{ env.PNPM_FILTER }} --no-frozen-lockfile"
         env:
           DROOLS_AND_KOGITO__forceBuild: true
-          KOGITO_RUNTIME_version: "999.0.0"
+          KOGITO_RUNTIME_version: "999-SNAPSHOT"
           DROOLS_AND_KOGITO__droolsRepoGitRef: "${{ steps.get_kiegroup_git_refs.outputs.DROOLS_AND_KOGITO__droolsRepoGitRef}}"
           DROOLS_AND_KOGITO__kogitoRuntimesRepoGitRef: "${{ steps.get_kiegroup_git_refs.outputs.DROOLS_AND_KOGITO__kogitoRuntimesRepoGitRef}}"
           DROOLS_AND_KOGITO__kogitoAppsRepoGitRef: "${{ steps.get_kiegroup_git_refs.outputs.DROOLS_AND_KOGITO__kogitoAppsRepoGitRef}}"
@@ -75,7 +76,10 @@ jobs:
 
       - name: Run mvn clean install to create image zips
         run: |
-          mvn clean install -DskipTests
+          mvn clean install -DskipTests -B -nsu
+        env:
+          DROOLS_AND_KOGITO__forceBuild: false
+          KOGITO_RUNTIME_version: "999-SNAPSHOT"
       
       - name: Replace pre-build step in kogito-db-migrator-tool
         run: |

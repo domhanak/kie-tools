@@ -50,7 +50,7 @@ var defaultControllersCfg = &ControllersCfg{
 	DbMigratorToolImageTag:        getEnvOrDefault("RELATED_IMAGE_DB_MIGRATOR_TOOL", ""),
 	SonataFlowBaseBuilderImageTag: getEnvOrDefault("RELATED_IMAGE_BASE_BUILDER", ""),
 	SonataFlowDevModeImageTag:     getEnvOrDefault("RELATED_IMAGE_DEVMODE", ""),
-	BuilderConfigMapName:          "sonataflow-operator-builder-config",
+	BuilderConfigMapName:          getEnvOrDefault("BUILDER_CONFIG_MAP", "sonataflow-operator-builder-config"),
 	KogitoEventsGrouping:          true,
 	KogitoEventsGroupingBinary:    true,
 	KogitoEventsGroupingCompress:  false,
